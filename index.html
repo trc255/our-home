@@ -471,12 +471,12 @@ legend{color:var(--tab)}
 <dialog id="bgmDlg" class="wide">
   <form id="bgmSearchForm">
     <h2>우리 BGM 고르기</h2>
-    <span class="hint">애플뮤직 음원 정보에서 찾아요. 재생은 되지 않고 제목, 가수, 앨범 커버만 표시돼요</span>
-    <div class="row"><input type="text" id="bgmQuery" class="textin" style="max-width:none" placeholder="노래 제목이나 가수 이름"><button class="pbtn primary">검색</button></div>
-    <p class="err" id="bgmErr"></p>
+    <span class="hint">애플뮤직에서 찾아요. 노래 제목, 가수 이름, 애플뮤직 노래 링크 모두 넣을 수 있어요. 재생은 되지 않고 제목, 가수, 앨범 커버만 표시돼요</span>
+    <div class="row"><input type="text" id="bgmQuery" class="textin" style="max-width:none" placeholder="예) 아이유 밤편지, 또는 애플뮤직 링크"><button class="pbtn primary">검색</button></div>
+    <div class="err" id="bgmErr"></div>
     <ul class="results" id="bgmResults"></ul>
   </form>
-  <details style="margin-top:10px">
+  <details id="bgmManual" style="margin-top:10px">
     <summary style="cursor:pointer;color:var(--tab)">검색이 안 되면 직접 입력하기</summary>
     <form id="bgmManualForm" style="margin-top:6px">
       <label class="f" for="bmTitle">제목</label><input type="text" id="bmTitle" maxlength="60">
@@ -1294,17 +1294,55 @@ function setBgm(data) {
   addLog({ k: 'bgm', title: data.title.slice(0, 60) });
   $('#bgmDlg').close(); toast(`BGM을 "${data.title}"(으)로 바꿨어요`);
 }
-function itunesSearch(term) {
+// ---- 음악 검색: 애플뮤직(fetch) → 애플뮤직(JSONP) → Deezer(JSONP) 순서로 시도 ----
+function jsonp(url, timeout = 7000) {
   return new Promise((res, rej) => {
-    const cb = 'itcb_' + uid().replace(/\W/g, '');
+    const cb = 'mcb_' + Math.random().toString(36).slice(2);
     const s = document.createElement('script');
     const done = () => { clearTimeout(timer); delete window[cb]; s.remove(); };
-    const timer = setTimeout(() => { done(); rej(new Error('timeout')); }, 8000);
-    window[cb] = d => { done(); res((d && d.results) || []); };
-    s.onerror = () => { done(); rej(new Error('blocked')); };
-    s.src = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&country=KR&limit=10&callback=${cb}`;
+    const timer = setTimeout(() => { done(); rej(new Error('응답 없음')); }, timeout);
+    window[cb] = d => { done(); res(d); };
+    s.onerror = () => { done(); rej(new Error('차단됨')); };
+    s.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb;
     document.head.appendChild(s);
   });
+}
+async function fetchJson(url, timeout = 7000) {
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), timeout);
+  try {
+    const r = await fetch(url, { signal: ctl.signal, referrerPolicy: 'no-referrer' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.json();
+  } catch (e) { throw new Error(e.name === 'AbortError' ? '응답 없음' : (e.message || '연결 실패')); }
+  finally { clearTimeout(t); }
+}
+const mapItunes = t => ({ title: t.trackName, artist: t.artistName, album: t.collectionName || '', thumb: t.artworkUrl100 || '', art: (t.artworkUrl100 || '').replace('100x100bb', '400x400bb'), url: t.trackViewUrl || '' });
+const mapDeezer = t => ({ title: t.title, artist: (t.artist || {}).name || '', album: (t.album || {}).title || '', thumb: (t.album || {}).cover_small || '', art: (t.album || {}).cover_medium || '', url: t.link || '' });
+async function searchSongs(q) {
+  const errors = [];
+  const appleId = (q.match(/music\.apple\.com\/.*[?&]i=(\d+)/) || q.match(/music\.apple\.com\/.*\/song\/[^/]*\/(\d+)/) || [])[1];
+  const apple = appleId
+    ? `https://itunes.apple.com/lookup?id=${appleId}&country=KR`
+    : `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&entity=song&country=KR&limit=12`;
+  const pickApple = d => ((d && d.results) || []).filter(t => t.trackName).map(mapItunes);
+  let emptyFrom = '';
+  try { const items = pickApple(await fetchJson(apple)); if (items.length) return { source: '애플뮤직', items }; emptyFrom = '애플뮤직'; }
+  catch (e) {
+    errors.push('애플뮤직(fetch): ' + e.message);
+    try { const items = pickApple(await jsonp(apple)); if (items.length) return { source: '애플뮤직', items }; emptyFrom = '애플뮤직'; }
+    catch (e2) { errors.push('애플뮤직(jsonp): ' + e2.message); }
+  }
+  if (!appleId) {
+    try {
+      const d = await jsonp(`https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=12&output=jsonp`);
+      if (d && d.error) throw new Error(d.error.message || '오류');
+      const items = ((d && d.data) || []).map(mapDeezer);
+      if (items.length) return { source: 'Deezer', items };
+      emptyFrom = emptyFrom || 'Deezer';
+    } catch (e) { errors.push('Deezer: ' + e.message); }
+  }
+  if (emptyFrom) return { source: emptyFrom, items: [] };
+  const err = new Error('검색 실패'); err.details = errors; throw err;
 }
 $('#bgmEdit').onclick = () => { $('#bgmErr').textContent = ''; $('#bgmDlg').showModal(); $('#bgmQuery').focus(); };
 $('#bgmClose').onclick = () => $('#bgmDlg').close();
@@ -1312,24 +1350,25 @@ $('#bgmClear').onclick = () => { store.update('profile', { bgm: null }); $('#bgm
 $('#bgmSearchForm').addEventListener('submit', async e => {
   e.preventDefault();
   const q = $('#bgmQuery').value.trim(); if (!q) return;
-  const list = $('#bgmResults'), err = $('#bgmErr');
-  err.textContent = '찾는 중…'; list.replaceChildren();
+  const list = $('#bgmResults'), err = $('#bgmErr'), btn = e.target.querySelector('button');
+  err.textContent = '찾는 중…'; list.replaceChildren(); btn.disabled = true;
   try {
-    const results = await itunesSearch(q);
-    err.textContent = results.length ? '' : '검색 결과가 없어요. 다른 이름으로 찾아보거나 직접 입력해 주세요.';
-    results.forEach(t => {
+    const { source, items } = await searchSongs(q);
+    err.textContent = items.length ? (source === '애플뮤직' ? '' : `애플뮤직에 연결되지 않아 ${source}에서 찾았어요`) : '검색 결과가 없어요. 가수 이름을 같이 넣어 보거나 아래에서 직접 입력해 주세요.';
+    items.forEach(t => {
       const li = el('li'), b = el('button'); b.type = 'button';
-      const art = (t.artworkUrl100 || '').replace('100x100bb', '300x300bb');
-      const i = img(t.artworkUrl100 || '', '', ''); i.referrerPolicy = 'no-referrer';
+      const i = img(t.thumb, '', ''); i.referrerPolicy = 'no-referrer';
       const tx = el('span'); tx.style.minWidth = '0';
-      tx.append(el('span', 'rt2', t.trackName), el('span', 'rt2 hint', `${t.artistName} · ${t.collectionName || ''}`));
+      tx.append(el('span', 'rt2', t.title), el('span', 'rt2 hint', [t.artist, t.album].filter(Boolean).join(' · ')));
       b.append(i, tx);
-      b.onclick = () => setBgm({ title: t.trackName, artist: t.artistName, art, url: t.trackViewUrl || '' });
+      b.onclick = () => setBgm({ title: t.title, artist: t.artist, art: t.art, url: t.url });
       li.append(b); list.append(li);
     });
   } catch (x) {
-    err.textContent = '애플뮤직 검색에 연결하지 못했어요. 회사 네트워크에서 막혔을 수 있으니 아래에서 직접 입력해 주세요.';
-  }
+    err.replaceChildren('음악 검색에 연결하지 못했어요. 회사·학교 네트워크나 광고 차단 확장프로그램이 막고 있을 수 있어요. 아래 "직접 입력하기"로 넣을 수 있어요.');
+    if (x.details) { const d = el('details'); d.append(el('summary', 'hint', '자세한 오류 보기'), el('p', 'hint', x.details.join(' / '))); err.append(d); }
+    $('#bgmManual').open = true;
+  } finally { btn.disabled = false; }
 });
 $('#bgmManualForm').addEventListener('submit', e => {
   e.preventDefault();
