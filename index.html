@@ -124,6 +124,11 @@ h1,h2,p{margin:0}
 .char.mo-hug img{animation:hug .6s steps(1) infinite}
 @keyframes hug{50%{transform:translateX(calc(var(--px) * 2 * var(--dir)))}}
 .char.mo-kiss img{animation:lean 3s steps(1) infinite}
+.char.mo-pincher{z-index:882}
+.char.mo-pincher img{animation:pinchA .6s steps(1) infinite}
+.char.mo-pinched img{animation:pinchB .6s steps(1) infinite}
+@keyframes pinchA{0%{transform:scaleX(var(--flip))}50%{transform:scaleX(var(--flip)) translateX(calc(var(--px) * -1))}}
+@keyframes pinchB{0%{transform:scaleX(var(--flip))}50%{transform:scaleX(var(--flip)) translateX(var(--px))}}
 @keyframes lean{0%{transform:none}15%,80%{transform:translateX(calc(var(--px) * 3 * var(--dir)))}}
 .fx{position:absolute;left:72%;top:14%;width:0;height:0;pointer-events:none}
 .char.act-sleep .fx{top:30%;left:40%}
@@ -280,6 +285,7 @@ legend{color:var(--tab)}
   .avpreview{position:static}
 }
 @media (prefers-reduced-motion:reduce){
+  .char.mo-pincher img,.char.mo-pinched img{animation:none;transform:scaleX(var(--flip))}
   .char img,.char.act-dance img,.char.act-hula img,.char .bubble.howl,.char.st-howl img,.char.act-guitar img,.char.act-sing img,.char.mo-hug img,.char.mo-kiss img,.patHand,.fx::before,.fx::after,.handheart,.char img.hit,.char img.shake,.drop.float img,.drop.land img,.eq i{animation:none}
   .char{transition:none}
   .pop{animation-duration:.01s}
@@ -594,7 +600,14 @@ const FACE_DRAW = {
   smile: r => { [5, 11].forEach(x => { r(x, 12, 1, 1, EYE); r(x + 1, 11, 2, 1, EYE); r(x + 3, 12, 1, 1, EYE); }); r(9, 14, 2, 1, '#e0707e'); r(9, 15, 2, 1, '#ffb0bf'); },
   wink: r => { r(6, 10, 2, 3, EYE); r(6, 10, 1, 1, '#fff'); r(7, 12, 1, 1, '#7a5aa6'); r(5, 10, 1, 1, EYE); r(11, 11, 1, 1, EYE); r(12, 12, 2, 1, EYE); r(14, 11, 1, 1, EYE); r(9, 14, 2, 1, '#e0707e'); },
   sing: r => { [5, 11].forEach(x => { r(x, 12, 1, 1, EYE); r(x + 1, 11, 2, 1, EYE); r(x + 3, 12, 1, 1, EYE); }); r(9, 14, 2, 2, '#c94f5f'); r(9, 14, 2, 1, '#8a3040'); },
-  howl: r => { r(5, 10, 2, 1, EYE); r(7, 11, 1, 1, EYE); r(5, 12, 2, 1, EYE); r(13, 10, 2, 1, EYE); r(12, 11, 1, 1, EYE); r(13, 12, 2, 1, EYE); r(9, 13, 2, 1, OL); r(8, 14, 1, 1, OL); r(11, 14, 1, 1, OL); r(9, 14, 2, 1, '#ff5a7a'); r(9, 15, 2, 1, OL); },
+  howl: r => {
+    // >3< : 질끈 감은 눈 + 쪽 내민 입술 + 발그레 볼
+    r(5, 10, 2, 1, EYE); r(6, 11, 2, 1, EYE); r(5, 12, 2, 1, EYE);
+    r(13, 10, 2, 1, EYE); r(12, 11, 2, 1, EYE); r(13, 12, 2, 1, EYE);
+    r(9, 13, 2, 1, EYE); r(9, 14, 1, 1, '#ff5a7a'); r(10, 14, 1, 1, EYE); r(9, 15, 2, 1, EYE);
+    r(3, 13, 3, 2, '#ff9fb5'); r(14, 13, 3, 2, '#ff9fb5'); r(4, 13, 1, 1, '#fff'); r(15, 13, 1, 1, '#fff');
+  },
+  pinched: r => { r(5, 10, 1, 1, EYE); r(6, 11, 1, 1, EYE); r(5, 12, 1, 1, EYE); r(14, 10, 1, 1, EYE); r(13, 11, 1, 1, EYE); r(14, 12, 1, 1, EYE); r(8, 14, 1, 1, '#c94f5f'); r(9, 15, 1, 1, '#c94f5f'); r(10, 14, 1, 1, '#c94f5f'); r(11, 15, 1, 1, '#c94f5f'); r(4, 13, 2, 1, '#ff9fb5'); },
   sleepy: r => { [6, 12].forEach(x => r(x, 12, 2, 1, EYE)); r(5, 11, 1, 1, EYE); r(14, 11, 1, 1, EYE); r(9, 14, 1, 1, '#e0707e'); }
 };
 const OUTFIT_DRAW = {
@@ -639,16 +652,17 @@ function drawChar(r, look, pose, leashed) {
   if (!outfit.skirt) { r(5, 20, 1, 1, SKIN); r(14, 20, 1, 1, SKIN); }
   if (pose === 'hula') {
     // 한쪽 팔은 위로, 한쪽은 아래로 물결 (좌우 반전 애니메이션으로 번갈아 흔들림)
-    const arm = pts => { pts.forEach(([x, y]) => r(x - 1, y - 1, 3, 4, OL)); pts.forEach(([x, y], i) => r(x, y, 1, 2, i < 2 ? O : SKIN)); };
-    arm([[16, 17], [17, 16], [18, 15], [19, 14], [20, 13], [21, 13], [22, 14]]);
-    arm([[3, 17], [2, 18], [1, 19], [0, 19], [-1, 19], [-2, 18], [-3, 17]]);
-    r(4, 19, 12, 1, '#8b5a2b');
-    for (let x = 4; x < 16; x++) r(x, 20, 1, x % 3 === 1 ? 3 : 2, x % 2 ? '#5cb85c' : '#3e8e41');
+    // 두 팔을 같은 쪽으로 물결처럼 뻗기 (좌우 반전 애니메이션으로 왼쪽~ 오른쪽~ 번갈아)
+    const arm = (pts, sleeve) => { pts.forEach(([x, y]) => r(x - 1, y - 1, 3, 4, OL)); pts.forEach(([x, y], i) => r(x, y, 1, 2, i < sleeve ? O : SKIN)); };
+    arm([[5, 18], [6, 18], [7, 18], [8, 18], [9, 18], [10, 18], [11, 18], [12, 18], [13, 18], [14, 18], [15, 18], [16, 18], [17, 19], [18, 19], [19, 19], [20, 18], [21, 18], [22, 17]], 12);
+    arm([[16, 17], [17, 16], [18, 15], [19, 14], [20, 13], [21, 12], [22, 12]], 2);
+    r(4, 20, 12, 1, '#8b5a2b');
+    for (let x = 4; x < 16; x++) r(x, 21, 1, x % 3 === 1 ? 3 : 2, x % 2 ? '#5cb85c' : '#3e8e41');
     for (let x = 6; x < 14; x++) r(x, 17, 1, 1, x % 2 ? '#ffd93d' : '#ff7ba0');
   }
   roundFill(r, 2, 3, 16, 14, [3, 1], OL); roundFill(r, 3, 4, 14, 12, [2, 1], SKIN);
   r(4, 13, 2, 1, '#ffb0bf'); r(14, 13, 2, 1, '#ffb0bf');
-  const face = { sleep: 'sleepy', sing: 'sing', smile: 'smile', hula: 'smile', howl: 'howl' }[pose] || look.face;
+  const face = { sleep: 'sleepy', sing: 'sing', smile: 'smile', hula: 'smile', howl: 'howl', pinched: 'pinched', reach: 'wink' }[pose] || look.face;
   (FACE_DRAW[face] || FACE_DRAW.sparkle)(r);
   const sideC = ['long', 'bob', 'short'].includes(look.hair) ? Hs : OL;
   r(6, 1, 8, 1, OL); r(4, 2, 2, 1, OL); r(14, 2, 2, 1, OL); r(3, 3, 1, 1, OL); r(16, 3, 1, 1, OL); r(2, 4, 1, 6, sideC); r(17, 4, 1, 6, sideC);
@@ -666,6 +680,18 @@ function drawChar(r, look, pose, leashed) {
     r(17, 14, 3, 3, OL); r(18, 15, 1, 1, '#5a3a1a');
     roundFill(r, 2, 17, 9, 7, [2, 0], OL); roundFill(r, 3, 18, 7, 5, [1], '#d9a066');
     r(5, 19, 2, 2, '#5a3a1a'); r(3, 21, 7, 1, '#c98a4b'); r(8, 21, 2, 1, SKIN); r(14, 16, 2, 2, SKIN);
+  }
+  if (pose === 'pinched') {
+    // 오른쪽 볼이 쭉~ 늘어남 (끝은 동글)
+    r(16, 11, 7, 1, OL); r(16, 15, 7, 1, OL); r(23, 12, 1, 3, OL); r(22, 11, 1, 1, OL); r(22, 15, 1, 1, OL);
+    r(15, 12, 8, 3, SKIN); r(22, 12, 1, 3, SKIN); r(16, 12, 6, 1, SKIN);
+    r(17, 13, 5, 1, '#ffb0bf'); r(19, 12, 2, 1, '#ffc9d3');
+  }
+  if (pose === 'reach') {
+    // 오른팔을 뻗어서 볼 꼬집기
+    [[16, 17], [17, 16], [18, 15], [19, 14], [20, 13]].forEach(([x, y]) => r(x - 1, y - 1, 3, 4, OL));
+    [[16, 17], [17, 16], [18, 15], [19, 14], [20, 13]].forEach(([x, y], i) => r(x, y, 1, 2, i < 2 ? look.outfitColor : SKIN));
+    r(20, 11, 5, 5, OL); r(21, 12, 3, 3, SKIN); r(21, 12, 1, 1, '#fff2e6');
   }
   if (pose === 'sing') { r(14, 12, 3, 3, OL); r(15, 13, 1, 1, '#d0d0d0'); r(15, 15, 1, 3, '#444'); r(14, 17, 2, 1, SKIN); }
 }
@@ -685,7 +711,7 @@ function charSrc(look, pose = 'stand', leashed = false) {
     g.setTransform(1, 0, 0, 1, 0, 0);
     roundFill(r, 19, 2, 9, 22, [2], OL); roundFill(r, 20, 3, 7, 20, [1], '#ffb3c7'); r(20, 4, 1, 18, '#fff');
     [[23, 6], [25, 10], [22, 14], [24, 18]].forEach(([x, y]) => r(x, y, 1, 1, '#ff8fb1'));
-  } else if (pose === 'hula') {
+  } else if (POSE_W[pose] === 28) {
     c.width = 28; c.height = 28;
     g.setTransform(1, 0, 0, 1, 4, 4);
     drawChar(r, look, pose, leashed);
@@ -696,13 +722,14 @@ function charSrc(look, pose = 'stand', leashed = false) {
   }
   return (spriteCache[key] = c.toDataURL());
 }
-const POSE_W = { sleep: 28, hula: 28 };
+const POSE_W = { sleep: 28, hula: 28, pinched: 28, reach: 28 };
 const HAND_SRC = spriteGrid(['.kkkk..', 'kssssk.', 'ksssssk', 'ksssssk', '.kkkkk.'], { k: OL, s: SKIN });
 const ACTS = { sleep: ['😴', '잠자기', '잠들었어요', '자는 중', '일어났어요'], dance: ['💃', '춤추기', '춤추기 시작했어요', '춤추는 중', '춤을 멈췄어요'], hula: ['🌺', '훌라훌라', '훌라훌라 춤을 추기 시작했어요', '훌라훌라 추는 중', '훌라춤을 멈췄어요'], guitar: ['🎸', '기타 치기', '기타를 치기 시작했어요', '기타 치는 중', '기타를 내려놨어요'], sing: ['🎤', '노래 부르기', '노래를 부르기 시작했어요', '노래 부르는 중', '노래를 멈췄어요'] };
 const MOMENTS = {
   hug: { emo: '🫂', label: '허그', stop: '허그 풀기', noti: '꼭 안아줬어요', did: ['님이 ', '님을 꼭 안아줬어요!'], end: '허그를 풀었어요' },
   kiss: { emo: '💋', label: '뽀뽀', stop: '뽀뽀 그만', noti: '뽀뽀했어요', did: ['님이 ', '님에게 뽀뽀했어요!'], end: '뽀뽀를 멈췄어요' },
-  pat: { emo: '🖐️', label: '쓰다듬기', stop: '쓰담 그만', noti: '머리를 쓰다듬기 시작했어요', did: ['님이 ', '님의 머리를 쓰다듬어요!'], end: '쓰다듬기를 멈췄어요' }
+  pat: { emo: '🖐️', label: '쓰다듬기', stop: '쓰담 그만', noti: '머리를 쓰다듬기 시작했어요', did: ['님이 ', '님의 머리를 쓰다듬어요!'], end: '쓰다듬기를 멈췄어요' },
+  pinch: { emo: '🤏', label: '볼 잡아당기기', stop: '볼 놓아주기', noti: '볼을 쭈욱 잡아당겼어요', did: ['님이 ', '님의 볼을 쭈욱 잡아당겼어요!'], end: '볼을 놓아줬어요' }
 };
 
 /* ---------------- 던지는 선물 ---------------- */
@@ -899,6 +926,12 @@ function renderChars() {
     if (m.kind === 'hug') { pos.A = mid - 4; pos.B = mid + 4; }
     if (m.kind === 'kiss') { pos.A = mid - 5; pos.B = mid + 5; }
     if (m.kind === 'pat') { const t = m.actor === 'A' ? 'B' : 'A'; pos[m.actor] = pos[t] + (m.actor === 'A' ? -11 : 11); }
+    if (m.kind === 'pinch') {
+      // 꼬집는 손끝이 늘어난 볼 끝에 딱 닿도록 (도트 25칸 간격)
+      const t = m.actor === 'A' ? 'B' : 'A', gap = 25 * S.px / Math.max(1, room.clientWidth) * 100;
+      pos[t] = Math.min(Math.max(pos[t], 12 + gap), 88 - gap);
+      pos[m.actor] = pos[t] + (m.actor === 'A' ? -gap : gap);
+    }
   }
   S.poses = {};
   ['A', 'B'].forEach(k => {
@@ -910,7 +943,9 @@ function renderChars() {
     const st = STATUSES.find(s => s[0] === u.status);
     const howl = online && !m && !act && !!u.name && u.status === 'howl' && !u.msg;
     let pose = { sleep: 'sleep', guitar: 'guitar', sing: 'sing', dance: 'smile', hula: 'hula' }[act] || (howl ? 'howl' : 'stand');
-    if (m) pose = (m.kind === 'pat' && k === m.actor) ? 'stand' : 'smile';
+    if (m) pose = m.kind === 'pinch' ? (k === m.actor ? 'reach' : 'pinched') : (m.kind === 'pat' && k === m.actor) ? 'stand' : 'smile';
+    // 꼬집기: 서로 마주 보도록 좌우 반전 (A가 꼬집으면 A는 오른쪽을 봄)
+    c.style.setProperty('--flip', m && m.kind === 'pinch' && ((k === m.actor) !== (m.actor === 'A')) ? -1 : 1);
     S.poses[k] = pose;
     const isLeashed = leashed.some(([w]) => w === k) && pose !== 'sleep';
     const i = c.querySelector('img'), src = charSrc(lookOf(k), pose, isLeashed);
@@ -919,6 +954,8 @@ function renderChars() {
     Object.keys(ACTS).forEach(a => c.classList.toggle('act-' + a, act === a));
     c.classList.toggle('mo-hug', !!m && m.kind === 'hug');
     c.classList.toggle('mo-kiss', !!m && m.kind === 'kiss');
+    c.classList.toggle('mo-pincher', !!m && m.kind === 'pinch' && k === m.actor);
+    c.classList.toggle('mo-pinched', !!m && m.kind === 'pinch' && k !== m.actor);
     const fx = c.querySelector('.fx');
     fx.dataset.a = act === 'sleep' ? 'z' : '♪'; fx.dataset.b = act === 'sleep' ? 'Z' : '♫'; fx.hidden = !act;
     c.querySelector('.tag').textContent = nm(k) + (k === S.me ? ' (나)' : '');
@@ -973,7 +1010,8 @@ function syncMomentFx(m) {
       else { popAt(cx, ia.top - r.top + ia.height * 0.28, THROWS.heart.src, 400); popAt(cx, ia.top - r.top - S.px * 4, null, 450, '쪽♥'); }
     } else {
       const t = charEls[m.actor === 'A' ? 'B' : 'A'].querySelector('img').getBoundingClientRect();
-      popAt(t.left - r.left + t.width / 2, t.top - r.top - S.px * 2, null, 0, '쓰담쓰담');
+      if (m.kind === 'pinch') { S.pinchN = (S.pinchN || 0) + 1; popAt(t.left - r.left + t.width / 2, t.top - r.top - S.px * 2, null, 0, S.pinchN % 2 ? '쭈우욱~' : '아야야 >_<'); }
+      else popAt(t.left - r.left + t.width / 2, t.top - r.top - S.px * 2, null, 0, '쓰담쓰담');
     }
   };
   S.fxStart = setTimeout(spawn, reduced ? 0 : 750);
