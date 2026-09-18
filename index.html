@@ -111,6 +111,12 @@ h1,h2,p{margin:0}
 @keyframes bob{50%{transform:translateY(calc(var(--px) * -1))}}
 .char.act-dance img{animation:dance 1s steps(1) infinite}
 @keyframes dance{0%{transform:none}25%{transform:translateY(calc(var(--px) * -2))}50%{transform:scaleX(-1)}75%{transform:scaleX(-1) translateY(calc(var(--px) * -2))}}
+.char.act-hula img{animation:hula .7s steps(1) infinite}
+@keyframes hula{0%{transform:translateX(calc(var(--px) * -1))}50%{transform:scaleX(-1) translateX(calc(var(--px) * -1))}}
+.char .bubble.howl{font-size:15px;padding:4px 12px;border-width:3px;margin-bottom:8px;animation:howl .5s steps(1) infinite}
+.char .bubble.howl::after{width:8px;height:8px;margin-left:-4px;border-width:3px;transform:translateY(-4px) rotate(45deg)}
+@keyframes howl{50%{transform:translateX(-50%) translateY(-2px) rotate(-2deg)}}
+.char.st-howl img{animation:bob .5s steps(1) infinite}
 .char.act-guitar img{animation:bob .4s steps(1) infinite}
 .char.act-sing img{animation:sway 1.2s steps(1) infinite}
 @keyframes sway{50%{transform:translateX(var(--px))}}
@@ -274,7 +280,7 @@ legend{color:var(--tab)}
   .avpreview{position:static}
 }
 @media (prefers-reduced-motion:reduce){
-  .char img,.char.act-dance img,.char.act-guitar img,.char.act-sing img,.char.mo-hug img,.char.mo-kiss img,.patHand,.fx::before,.fx::after,.handheart,.char img.hit,.char img.shake,.drop.float img,.drop.land img,.eq i{animation:none}
+  .char img,.char.act-dance img,.char.act-hula img,.char .bubble.howl,.char.st-howl img,.char.act-guitar img,.char.act-sing img,.char.mo-hug img,.char.mo-kiss img,.patHand,.fx::before,.fx::after,.handheart,.char img.hit,.char img.shake,.drop.float img,.drop.land img,.eq i{animation:none}
   .char{transition:none}
   .pop{animation-duration:.01s}
 }
@@ -374,7 +380,7 @@ legend{color:var(--tab)}
           </div>
         </div>
 
-        <!-- 방명록 -->
+        <!-- 개발자에게 -->
         <div id="tab-dev" role="tabpanel" hidden>
           <div class="sectionhead"><h2>개발자에게</h2><button class="linkbtn" type="button" id="copyReqs">요청 목록 복사</button></div>
           <p class="hint">갖고 싶은 악세사리, 가구, 모션이나 불편한 점을 남겨 주세요. 확인하고 업데이트할게요!</p>
@@ -471,12 +477,12 @@ legend{color:var(--tab)}
 <dialog id="bgmDlg" class="wide">
   <form id="bgmSearchForm">
     <h2>우리 BGM 고르기</h2>
-    <span class="hint">애플뮤직에서 찾아요. 노래 제목, 가수 이름, 애플뮤직 노래 링크 모두 넣을 수 있어요. 재생은 되지 않고 제목, 가수, 앨범 커버만 표시돼요</span>
-    <div class="row"><input type="text" id="bgmQuery" class="textin" style="max-width:none" placeholder="예) 아이유 밤편지, 또는 애플뮤직 링크"><button class="pbtn primary">검색</button></div>
-    <div class="err" id="bgmErr"></div>
+    <span class="hint">애플뮤직 음원 정보에서 찾아요. 재생은 되지 않고 제목, 가수, 앨범 커버만 표시돼요</span>
+    <div class="row"><input type="text" id="bgmQuery" class="textin" style="max-width:none" placeholder="노래 제목이나 가수 이름"><button class="pbtn primary">검색</button></div>
+    <p class="err" id="bgmErr"></p>
     <ul class="results" id="bgmResults"></ul>
   </form>
-  <details id="bgmManual" style="margin-top:10px">
+  <details style="margin-top:10px">
     <summary style="cursor:pointer;color:var(--tab)">검색이 안 되면 직접 입력하기</summary>
     <form id="bgmManualForm" style="margin-top:6px">
       <label class="f" for="bmTitle">제목</label><input type="text" id="bmTitle" maxlength="60">
@@ -588,6 +594,7 @@ const FACE_DRAW = {
   smile: r => { [5, 11].forEach(x => { r(x, 12, 1, 1, EYE); r(x + 1, 11, 2, 1, EYE); r(x + 3, 12, 1, 1, EYE); }); r(9, 14, 2, 1, '#e0707e'); r(9, 15, 2, 1, '#ffb0bf'); },
   wink: r => { r(6, 10, 2, 3, EYE); r(6, 10, 1, 1, '#fff'); r(7, 12, 1, 1, '#7a5aa6'); r(5, 10, 1, 1, EYE); r(11, 11, 1, 1, EYE); r(12, 12, 2, 1, EYE); r(14, 11, 1, 1, EYE); r(9, 14, 2, 1, '#e0707e'); },
   sing: r => { [5, 11].forEach(x => { r(x, 12, 1, 1, EYE); r(x + 1, 11, 2, 1, EYE); r(x + 3, 12, 1, 1, EYE); }); r(9, 14, 2, 2, '#c94f5f'); r(9, 14, 2, 1, '#8a3040'); },
+  howl: r => { r(5, 10, 2, 1, EYE); r(7, 11, 1, 1, EYE); r(5, 12, 2, 1, EYE); r(13, 10, 2, 1, EYE); r(12, 11, 1, 1, EYE); r(13, 12, 2, 1, EYE); r(9, 13, 2, 1, OL); r(8, 14, 1, 1, OL); r(11, 14, 1, 1, OL); r(9, 14, 2, 1, '#ff5a7a'); r(9, 15, 2, 1, OL); },
   sleepy: r => { [6, 12].forEach(x => r(x, 12, 2, 1, EYE)); r(5, 11, 1, 1, EYE); r(14, 11, 1, 1, EYE); r(9, 14, 1, 1, '#e0707e'); }
 };
 const OUTFIT_DRAW = {
@@ -630,9 +637,18 @@ function drawChar(r, look, pose, leashed) {
   r(6, 23, 3, 1, '#6b4a3a'); r(11, 23, 3, 1, '#6b4a3a');
   outfit.draw(r, O, Os);
   if (!outfit.skirt) { r(5, 20, 1, 1, SKIN); r(14, 20, 1, 1, SKIN); }
+  if (pose === 'hula') {
+    // 한쪽 팔은 위로, 한쪽은 아래로 물결 (좌우 반전 애니메이션으로 번갈아 흔들림)
+    const arm = pts => { pts.forEach(([x, y]) => r(x - 1, y - 1, 3, 4, OL)); pts.forEach(([x, y], i) => r(x, y, 1, 2, i < 2 ? O : SKIN)); };
+    arm([[16, 17], [17, 16], [18, 15], [19, 14], [20, 13], [21, 13], [22, 14]]);
+    arm([[3, 17], [2, 18], [1, 19], [0, 19], [-1, 19], [-2, 18], [-3, 17]]);
+    r(4, 19, 12, 1, '#8b5a2b');
+    for (let x = 4; x < 16; x++) r(x, 20, 1, x % 3 === 1 ? 3 : 2, x % 2 ? '#5cb85c' : '#3e8e41');
+    for (let x = 6; x < 14; x++) r(x, 17, 1, 1, x % 2 ? '#ffd93d' : '#ff7ba0');
+  }
   roundFill(r, 2, 3, 16, 14, [3, 1], OL); roundFill(r, 3, 4, 14, 12, [2, 1], SKIN);
   r(4, 13, 2, 1, '#ffb0bf'); r(14, 13, 2, 1, '#ffb0bf');
-  const face = { sleep: 'sleepy', sing: 'sing', smile: 'smile' }[pose] || look.face;
+  const face = { sleep: 'sleepy', sing: 'sing', smile: 'smile', hula: 'smile', howl: 'howl' }[pose] || look.face;
   (FACE_DRAW[face] || FACE_DRAW.sparkle)(r);
   const sideC = ['long', 'bob', 'short'].includes(look.hair) ? Hs : OL;
   r(6, 1, 8, 1, OL); r(4, 2, 2, 1, OL); r(14, 2, 2, 1, OL); r(3, 3, 1, 1, OL); r(16, 3, 1, 1, OL); r(2, 4, 1, 6, sideC); r(17, 4, 1, 6, sideC);
@@ -669,6 +685,10 @@ function charSrc(look, pose = 'stand', leashed = false) {
     g.setTransform(1, 0, 0, 1, 0, 0);
     roundFill(r, 19, 2, 9, 22, [2], OL); roundFill(r, 20, 3, 7, 20, [1], '#ffb3c7'); r(20, 4, 1, 18, '#fff');
     [[23, 6], [25, 10], [22, 14], [24, 18]].forEach(([x, y]) => r(x, y, 1, 1, '#ff8fb1'));
+  } else if (pose === 'hula') {
+    c.width = 28; c.height = 28;
+    g.setTransform(1, 0, 0, 1, 4, 4);
+    drawChar(r, look, pose, leashed);
   } else {
     c.width = 20; c.height = 28;
     g.setTransform(1, 0, 0, 1, 0, 4);
@@ -676,9 +696,9 @@ function charSrc(look, pose = 'stand', leashed = false) {
   }
   return (spriteCache[key] = c.toDataURL());
 }
-const POSE_W = { sleep: 28 };
+const POSE_W = { sleep: 28, hula: 28 };
 const HAND_SRC = spriteGrid(['.kkkk..', 'kssssk.', 'ksssssk', 'ksssssk', '.kkkkk.'], { k: OL, s: SKIN });
-const ACTS = { sleep: ['😴', '잠자기', '잠들었어요', '자는 중', '일어났어요'], dance: ['💃', '춤추기', '춤추기 시작했어요', '춤추는 중', '춤을 멈췄어요'], guitar: ['🎸', '기타 치기', '기타를 치기 시작했어요', '기타 치는 중', '기타를 내려놨어요'], sing: ['🎤', '노래 부르기', '노래를 부르기 시작했어요', '노래 부르는 중', '노래를 멈췄어요'] };
+const ACTS = { sleep: ['😴', '잠자기', '잠들었어요', '자는 중', '일어났어요'], dance: ['💃', '춤추기', '춤추기 시작했어요', '춤추는 중', '춤을 멈췄어요'], hula: ['🌺', '훌라훌라', '훌라훌라 춤을 추기 시작했어요', '훌라훌라 추는 중', '훌라춤을 멈췄어요'], guitar: ['🎸', '기타 치기', '기타를 치기 시작했어요', '기타 치는 중', '기타를 내려놨어요'], sing: ['🎤', '노래 부르기', '노래를 부르기 시작했어요', '노래 부르는 중', '노래를 멈췄어요'] };
 const MOMENTS = {
   hug: { emo: '🫂', label: '허그', stop: '허그 풀기', noti: '꼭 안아줬어요', did: ['님이 ', '님을 꼭 안아줬어요!'], end: '허그를 풀었어요' },
   kiss: { emo: '💋', label: '뽀뽀', stop: '뽀뽀 그만', noti: '뽀뽀했어요', did: ['님이 ', '님에게 뽀뽀했어요!'], end: '뽀뽀를 멈췄어요' },
@@ -725,7 +745,7 @@ const FURN = {
 };
 for (const k in FURN) FURN[k].src = spriteRects(FURN[k].w, FURN[k].h, FURN[k].draw);
 
-const STATUSES = [['work', '💻', '열일중'], ['meeting', '🔥', '회의중'], ['meal', '🍚', '밥 먹는 중'], ['coffee', '☕', '커피 수혈'], ['tired', '🫠', '퇴근하고 싶다'], ['miss', '🥺', '보고 싶어'], ['home', '🏠', '퇴근!']];
+const STATUSES = [['work', '💻', '열일중'], ['meeting', '🔥', '회의중'], ['meal', '🍚', '밥 먹는 중'], ['coffee', '☕', '커피 수혈'], ['tired', '🫠', '퇴근하고 싶다'], ['miss', '🥺', '보고 싶어'], ['howl', '🐺', '아우우', '아우우우우우우우우우~'], ['home', '🏠', '퇴근!']];
 
 const QUESTIONS = [
   '처음 만났을 때 서로의 첫인상은?', '요즘 제일 자주 듣는 노래는?', '같이 가 보고 싶은 여행지 한 곳은?', '오늘 점심 뭐 먹었어? 만족도는 몇 점?',
@@ -887,7 +907,9 @@ function renderChars() {
     c.style.setProperty('--dir', k === 'A' ? 1 : -1);
     c.classList.toggle('off', !online);
     const act = online && !m && ACTS[u.act] ? u.act : null;
-    let pose = { sleep: 'sleep', guitar: 'guitar', sing: 'sing', dance: 'smile' }[act] || 'stand';
+    const st = STATUSES.find(s => s[0] === u.status);
+    const howl = online && !m && !act && !!u.name && u.status === 'howl' && !u.msg;
+    let pose = { sleep: 'sleep', guitar: 'guitar', sing: 'sing', dance: 'smile', hula: 'hula' }[act] || (howl ? 'howl' : 'stand');
     if (m) pose = (m.kind === 'pat' && k === m.actor) ? 'stand' : 'smile';
     S.poses[k] = pose;
     const isLeashed = leashed.some(([w]) => w === k) && pose !== 'sleep';
@@ -900,13 +922,13 @@ function renderChars() {
     const fx = c.querySelector('.fx');
     fx.dataset.a = act === 'sleep' ? 'z' : '♪'; fx.dataset.b = act === 'sleep' ? 'Z' : '♫'; fx.hidden = !act;
     c.querySelector('.tag').textContent = nm(k) + (k === S.me ? ' (나)' : '');
-    const st = STATUSES.find(s => s[0] === u.status);
+    c.classList.toggle('st-howl', howl);
     let text;
     if (!u.name) text = '아직 안 들어왔어요';
     else if (!online) text = '💤 오프라인';
     else if (act === 'sleep' && !u.msg) text = '쿨쿨…';
-    else text = ((st ? st[1] + ' ' : '') + (u.msg || (st ? st[2] : ''))).trim();
-    const bubble = c.querySelector('.bubble'); bubble.textContent = text; bubble.hidden = !text || !!m;
+    else text = ((st ? st[1] + ' ' : '') + (u.msg || (st ? st[3] || st[2] : ''))).trim();
+    const bubble = c.querySelector('.bubble'); bubble.textContent = text; bubble.hidden = !text || !!m; bubble.classList.toggle('howl', howl);
     c.querySelector('.handmark').hidden = !(u.hand && !holding && online);
     if (k === S.other) c.setAttribute('aria-label', `${nm(k)} 콕 찌르기`);
   });
@@ -984,8 +1006,9 @@ function fxLoop() {
       const w = charEls[wearer].querySelector('img').getBoundingClientRect();
       const h = charEls[holder].querySelector('img').getBoundingClientRect();
       const holderLeft = h.left < w.left;
-      const x0 = (w.left + w.width * (holderLeft ? 5 : 15) / 20 - rr.left) / px, y0 = (w.top + w.height * 21.5 / 28 - rr.top) / px;
-      const x1 = (h.left + h.width * (holderLeft ? 15.5 : 4.5) / 20 - rr.left) / px, y1 = (h.top + h.height * 24.5 / 28 - rr.top) / px;
+      const fx = (k, v) => { const ww = POSE_W[S.poses && S.poses[k]] || 20; return (v + (ww - 20) / 2) / ww; };
+      const x0 = (w.left + w.width * fx(wearer, holderLeft ? 5 : 15) - rr.left) / px, y0 = (w.top + w.height * 21.5 / 28 - rr.top) / px;
+      const x1 = (h.left + h.width * fx(holder, holderLeft ? 15.5 : 4.5) - rr.left) / px, y1 = (h.top + h.height * 24.5 / 28 - rr.top) / px;
       const sag = Math.max(3, Math.abs(x1 - x0) * 0.18);
       const steps = Math.ceil(Math.abs(x1 - x0) + Math.abs(y1 - y0)) + 2;
       for (let i = 0; i <= steps; i++) {
@@ -1294,55 +1317,17 @@ function setBgm(data) {
   addLog({ k: 'bgm', title: data.title.slice(0, 60) });
   $('#bgmDlg').close(); toast(`BGM을 "${data.title}"(으)로 바꿨어요`);
 }
-// ---- 음악 검색: 애플뮤직(fetch) → 애플뮤직(JSONP) → Deezer(JSONP) 순서로 시도 ----
-function jsonp(url, timeout = 7000) {
+function itunesSearch(term) {
   return new Promise((res, rej) => {
-    const cb = 'mcb_' + Math.random().toString(36).slice(2);
+    const cb = 'itcb_' + uid().replace(/\W/g, '');
     const s = document.createElement('script');
     const done = () => { clearTimeout(timer); delete window[cb]; s.remove(); };
-    const timer = setTimeout(() => { done(); rej(new Error('응답 없음')); }, timeout);
-    window[cb] = d => { done(); res(d); };
-    s.onerror = () => { done(); rej(new Error('차단됨')); };
-    s.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb;
+    const timer = setTimeout(() => { done(); rej(new Error('timeout')); }, 8000);
+    window[cb] = d => { done(); res((d && d.results) || []); };
+    s.onerror = () => { done(); rej(new Error('blocked')); };
+    s.src = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&country=KR&limit=10&callback=${cb}`;
     document.head.appendChild(s);
   });
-}
-async function fetchJson(url, timeout = 7000) {
-  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), timeout);
-  try {
-    const r = await fetch(url, { signal: ctl.signal, referrerPolicy: 'no-referrer' });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return await r.json();
-  } catch (e) { throw new Error(e.name === 'AbortError' ? '응답 없음' : (e.message || '연결 실패')); }
-  finally { clearTimeout(t); }
-}
-const mapItunes = t => ({ title: t.trackName, artist: t.artistName, album: t.collectionName || '', thumb: t.artworkUrl100 || '', art: (t.artworkUrl100 || '').replace('100x100bb', '400x400bb'), url: t.trackViewUrl || '' });
-const mapDeezer = t => ({ title: t.title, artist: (t.artist || {}).name || '', album: (t.album || {}).title || '', thumb: (t.album || {}).cover_small || '', art: (t.album || {}).cover_medium || '', url: t.link || '' });
-async function searchSongs(q) {
-  const errors = [];
-  const appleId = (q.match(/music\.apple\.com\/.*[?&]i=(\d+)/) || q.match(/music\.apple\.com\/.*\/song\/[^/]*\/(\d+)/) || [])[1];
-  const apple = appleId
-    ? `https://itunes.apple.com/lookup?id=${appleId}&country=KR`
-    : `https://itunes.apple.com/search?term=${encodeURIComponent(q)}&media=music&entity=song&country=KR&limit=12`;
-  const pickApple = d => ((d && d.results) || []).filter(t => t.trackName).map(mapItunes);
-  let emptyFrom = '';
-  try { const items = pickApple(await fetchJson(apple)); if (items.length) return { source: '애플뮤직', items }; emptyFrom = '애플뮤직'; }
-  catch (e) {
-    errors.push('애플뮤직(fetch): ' + e.message);
-    try { const items = pickApple(await jsonp(apple)); if (items.length) return { source: '애플뮤직', items }; emptyFrom = '애플뮤직'; }
-    catch (e2) { errors.push('애플뮤직(jsonp): ' + e2.message); }
-  }
-  if (!appleId) {
-    try {
-      const d = await jsonp(`https://api.deezer.com/search?q=${encodeURIComponent(q)}&limit=12&output=jsonp`);
-      if (d && d.error) throw new Error(d.error.message || '오류');
-      const items = ((d && d.data) || []).map(mapDeezer);
-      if (items.length) return { source: 'Deezer', items };
-      emptyFrom = emptyFrom || 'Deezer';
-    } catch (e) { errors.push('Deezer: ' + e.message); }
-  }
-  if (emptyFrom) return { source: emptyFrom, items: [] };
-  const err = new Error('검색 실패'); err.details = errors; throw err;
 }
 $('#bgmEdit').onclick = () => { $('#bgmErr').textContent = ''; $('#bgmDlg').showModal(); $('#bgmQuery').focus(); };
 $('#bgmClose').onclick = () => $('#bgmDlg').close();
@@ -1350,25 +1335,24 @@ $('#bgmClear').onclick = () => { store.update('profile', { bgm: null }); $('#bgm
 $('#bgmSearchForm').addEventListener('submit', async e => {
   e.preventDefault();
   const q = $('#bgmQuery').value.trim(); if (!q) return;
-  const list = $('#bgmResults'), err = $('#bgmErr'), btn = e.target.querySelector('button');
-  err.textContent = '찾는 중…'; list.replaceChildren(); btn.disabled = true;
+  const list = $('#bgmResults'), err = $('#bgmErr');
+  err.textContent = '찾는 중…'; list.replaceChildren();
   try {
-    const { source, items } = await searchSongs(q);
-    err.textContent = items.length ? (source === '애플뮤직' ? '' : `애플뮤직에 연결되지 않아 ${source}에서 찾았어요`) : '검색 결과가 없어요. 가수 이름을 같이 넣어 보거나 아래에서 직접 입력해 주세요.';
-    items.forEach(t => {
+    const results = await itunesSearch(q);
+    err.textContent = results.length ? '' : '검색 결과가 없어요. 다른 이름으로 찾아보거나 직접 입력해 주세요.';
+    results.forEach(t => {
       const li = el('li'), b = el('button'); b.type = 'button';
-      const i = img(t.thumb, '', ''); i.referrerPolicy = 'no-referrer';
+      const art = (t.artworkUrl100 || '').replace('100x100bb', '300x300bb');
+      const i = img(t.artworkUrl100 || '', '', ''); i.referrerPolicy = 'no-referrer';
       const tx = el('span'); tx.style.minWidth = '0';
-      tx.append(el('span', 'rt2', t.title), el('span', 'rt2 hint', [t.artist, t.album].filter(Boolean).join(' · ')));
+      tx.append(el('span', 'rt2', t.trackName), el('span', 'rt2 hint', `${t.artistName} · ${t.collectionName || ''}`));
       b.append(i, tx);
-      b.onclick = () => setBgm({ title: t.title, artist: t.artist, art: t.art, url: t.url });
+      b.onclick = () => setBgm({ title: t.trackName, artist: t.artistName, art, url: t.trackViewUrl || '' });
       li.append(b); list.append(li);
     });
   } catch (x) {
-    err.replaceChildren('음악 검색에 연결하지 못했어요. 회사·학교 네트워크나 광고 차단 확장프로그램이 막고 있을 수 있어요. 아래 "직접 입력하기"로 넣을 수 있어요.');
-    if (x.details) { const d = el('details'); d.append(el('summary', 'hint', '자세한 오류 보기'), el('p', 'hint', x.details.join(' / '))); err.append(d); }
-    $('#bgmManual').open = true;
-  } finally { btn.disabled = false; }
+    err.textContent = '애플뮤직 검색에 연결하지 못했어요. 회사 네트워크에서 막혔을 수 있으니 아래에서 직접 입력해 주세요.';
+  }
 });
 $('#bgmManualForm').addEventListener('submit', e => {
   e.preventDefault();
