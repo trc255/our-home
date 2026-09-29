@@ -65,6 +65,10 @@ h1,h2,p{margin:0}
 .bgmby{font-size:10px;color:#8a92c8}
 .bgm a{color:inherit;text-decoration:none}
 .bgm a:hover .bgmtitle{text-decoration:underline}
+.bgmplay{margin-left:auto;flex:none;width:30px;height:30px;border:2px solid #e9ecff;background:#40466e;color:#ffe27a;font-family:inherit;font-size:13px;cursor:pointer}
+.bgmplay:hover{background:#525a8a}
+.results li{display:flex;align-items:center;gap:6px}
+.results li .linkbtn{flex:none;white-space:nowrap}
 .eq{display:inline-flex;gap:1px;align-items:flex-end;height:9px;margin-right:4px}
 .eq i{width:2px;background:#ffe27a;animation:eq 1s steps(3) infinite}
 .eq i:nth-child(2){animation-delay:.3s}.eq i:nth-child(3){animation-delay:.6s}
@@ -252,6 +256,7 @@ dialog.wide{width:min(600px,94vw)}
 .balopt.mine{background:#fff0f4;box-shadow:3px 3px 0 var(--pixel)}
 .balopt.other{border-style:double;border-width:4px}
 .balopt.mine.other{background:#ffe3ec}
+.balopt:disabled{cursor:default;opacity:.95}
 .pethead{display:flex;align-items:center;gap:8px;margin-bottom:6px}
 .petface{width:44px;image-rendering:pixelated}
 .bar{display:flex;align-items:center;gap:6px;margin:3px 0}
@@ -543,7 +548,7 @@ legend{color:var(--tab)}
 <dialog id="bgmDlg" class="wide">
   <form id="bgmSearchForm">
     <h2>우리 BGM 고르기</h2>
-    <span class="hint">애플뮤직 음원 정보에서 찾아요. 재생은 되지 않고 제목, 가수, 앨범 커버만 표시돼요</span>
+    <span class="hint">Deezer에서 찾고, 안 되면 애플뮤직으로 다시 찾아요. 대부분 30초 미리듣기가 같이 와요 ▶</span>
     <div class="row"><input type="text" id="bgmQuery" class="textin" style="max-width:none" placeholder="노래 제목이나 가수 이름"><button class="pbtn primary">검색</button></div>
     <p class="err" id="bgmErr"></p>
     <ul class="results" id="bgmResults"></ul>
@@ -555,6 +560,7 @@ legend{color:var(--tab)}
       <label class="f" for="bmArtist">가수</label><input type="text" id="bmArtist" maxlength="60">
       <label class="f" for="bmArt">앨범 커버 이미지 주소 (선택)</label><input type="url" id="bmArt" placeholder="https://...">
       <label class="f" for="bmUrl">노래 링크 (선택, 멜론 링크도 가능)</label><input type="url" id="bmUrl" placeholder="https://...">
+      <label class="f" for="bmPrev">미리듣기 음원 주소 (선택, mp3)</label><input type="url" id="bmPrev" placeholder="https://....mp3">
       <button class="pbtn primary" style="justify-self:start;margin-top:6px">이 곡으로 설정</button>
     </form>
   </details>
@@ -1422,77 +1428,133 @@ function renderBgm() {
     const a = el('a'); a.href = bgm.url; a.target = '_blank'; a.rel = 'noopener'; a.style.display = 'contents';
     a.append(art, txt); body.append(a);
   } else body.append(art, txt);
+  if (bgm.preview && /^https?:\/\//.test(bgm.preview)) {
+    const pb = el('button', 'bgmplay', '▶'); pb.type = 'button'; pb.id = 'bgmPlay';
+    pb.setAttribute('aria-label', '미리듣기 재생');
+    pb.onclick = () => playPreview(bgm, pb);
+    body.append(pb);
+  } else stopPreview();
+}
+let audio = null, previewBtn = null;
+function stopPreview() {
+  if (audio) { audio.pause(); audio.src = ''; audio = null; }
+  if (previewBtn) { previewBtn.textContent = previewBtn.dataset.label || '▶ 들어보기'; previewBtn = null; }
+  const pb = $('#bgmPlay'); if (pb) { pb.textContent = '▶'; pb.setAttribute('aria-label', '미리듣기 재생'); }
+  $('#bgm').classList.remove('playing');
+}
+function playPreview(track, btn) {
+  const same = previewBtn === btn && audio;
+  stopPreview();
+  if (same) return;
+  audio = new Audio(track.preview);
+  audio.volume = 0.7;
+  audio.onended = stopPreview;
+  audio.onerror = () => { toast('미리듣기를 재생하지 못했어요'); stopPreview(); };
+  audio.play().catch(() => { toast('브라우저가 재생을 막았어요. 한 번 더 눌러 주세요'); stopPreview(); });
+  if (btn) { previewBtn = btn; btn.dataset.label = btn.dataset.label || btn.textContent; btn.textContent = '⏸ 멈춤'; }
+  if (btn && btn.id === 'bgmPlay') { btn.textContent = '⏸'; $('#bgm').classList.add('playing'); }
 }
 function setBgm(data) {
-  store.update('profile', { bgm: { ...data, by: S.me, ts: store.now() } });
+  stopPreview();
+  store.update('profile', { bgm: { title: data.title, artist: data.artist || '', art: data.art || '', url: data.url || '', preview: data.preview || '', by: S.me, ts: store.now() } });
   addLog({ k: 'bgm', title: data.title.slice(0, 60) });
   $('#bgmDlg').close(); toast(`BGM을 "${data.title}"(으)로 바꿨어요`);
 }
-function itunesUrl(term) {
-  return `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&country=KR&lang=ko_kr&limit=12`;
-}
-function itunesJsonp(term) {
+function jsonpGet(url, cbParam) {
   return new Promise((res, rej) => {
-    const cb = 'itcb_' + uid().replace(/\W/g, '');
-    const s = document.createElement('script');
-    const done = () => { clearTimeout(timer); delete window[cb]; s.remove(); };
-    const timer = setTimeout(() => { done(); rej(new Error('timeout')); }, 10000);
-    window[cb] = d => { done(); res((d && d.results) || []); };
-    s.onerror = () => { done(); rej(new Error('blocked')); };
-    s.src = itunesUrl(term) + '&callback=' + cb;
-    document.head.appendChild(s);
+    const cb = 'mcb_' + uid().replace(/\W/g, '');
+    const sc = document.createElement('script');
+    const done = () => { clearTimeout(timer); delete window[cb]; sc.remove(); };
+    const timer = setTimeout(() => { done(); rej(new Error('시간 초과')); }, 10000);
+    window[cb] = d => { done(); res(d); };
+    sc.onerror = () => { done(); rej(new Error('차단됨')); };
+    sc.src = url + (url.includes('?') ? '&' : '?') + cbParam + '=' + cb;
+    document.head.appendChild(sc);
   });
 }
-async function itunesFetch(term, proxy) {
-  const raw = itunesUrl(term);
-  const url = proxy ? 'https://api.allorigins.win/raw?url=' + encodeURIComponent(raw) : raw;
+async function jsonGet(url, proxy) {
+  const target = proxy ? 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url) : url;
   const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 10000);
   try {
-    const r = await fetch(url, { signal: ctl.signal });
-    if (!r.ok) throw new Error('http ' + r.status);
-    const d = await r.json();
-    return d.results || [];
+    const r = await fetch(target, { signal: ctl.signal });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return await r.json();
   } finally { clearTimeout(timer); }
 }
-// 네트워크/차단 환경이 제각각이라 세 가지 방법을 차례로 시도해요
-async function itunesSearch(term, onTry) {
-  const ways = [['직접 연결', () => itunesFetch(term, false)], ['JSONP', () => itunesJsonp(term)], ['우회 연결', () => itunesFetch(term, true)]];
-  let last = null;
-  for (const [label, fn] of ways) {
-    try { if (onTry) onTry(label); const out = await fn(); if (out) return out; }
-    catch (e) { last = label + ': ' + (e && e.message || e); }
+const MUSIC_SOURCES = [
+  {
+    name: 'Deezer',
+    url: t => `https://api.deezer.com/search?limit=12&q=${encodeURIComponent(t)}`,
+    jsonp: { param: 'callback', extra: '&output=jsonp' },
+    pick: d => ((d && (d.data || (d.results && d.results.data))) || []).map(t => ({
+      title: t.title_short || t.title, artist: (t.artist || {}).name || '', album: (t.album || {}).title || '',
+      art: (t.album || {}).cover_medium || (t.album || {}).cover || '', url: t.link || '', preview: t.preview || ''
+    }))
+  },
+  {
+    name: '애플뮤직',
+    url: t => `https://itunes.apple.com/search?term=${encodeURIComponent(t)}&media=music&entity=song&country=KR&lang=ko_kr&limit=12`,
+    jsonp: { param: 'callback', extra: '' },
+    pick: d => ((d && d.results) || []).map(t => ({
+      title: t.trackName, artist: t.artistName || '', album: t.collectionName || '',
+      art: (t.artworkUrl100 || '').replace('100x100bb', '300x300bb'), url: t.trackViewUrl || '', preview: t.previewUrl || ''
+    }))
   }
-  throw new Error(last || 'unknown');
+];
+// 환경마다 막히는 방식이 달라서 직접 연결 → JSONP → 우회 순으로 시도해요
+async function musicSearch(term, onTry) {
+  let last = '';
+  for (const src of MUSIC_SOURCES) {
+    const ways = [
+      ['직접 연결', () => jsonGet(src.url(term), false)],
+      ['JSONP', () => jsonpGet(src.url(term) + src.jsonp.extra, src.jsonp.param)],
+      ['우회 연결', () => jsonGet(src.url(term), true)]
+    ];
+    for (const [label, fn] of ways) {
+      try {
+        if (onTry) onTry(`${src.name} · ${label}`);
+        const list = src.pick(await fn()).filter(x => x.title);
+        if (list.length) return list;
+        last = `${src.name}: 결과 없음`;
+      } catch (e) { last = `${src.name} ${label}: ${(e && e.message) || e}`; }
+    }
+  }
+  throw new Error(last || '알 수 없는 오류');
 }
 $('#bgmEdit').onclick = () => { $('#bgmErr').textContent = ''; $('#bgmDlg').showModal(); $('#bgmQuery').focus(); };
-$('#bgmClose').onclick = () => $('#bgmDlg').close();
-$('#bgmClear').onclick = () => { store.update('profile', { bgm: null }); $('#bgmDlg').close(); };
+$('#bgmClose').onclick = () => { stopPreview(); $('#bgmDlg').close(); };
+$('#bgmClear').onclick = () => { stopPreview(); store.update('profile', { bgm: null }); $('#bgmDlg').close(); };
 $('#bgmSearchForm').addEventListener('submit', async e => {
   e.preventDefault();
   const q = $('#bgmQuery').value.trim(); if (!q) return;
   const list = $('#bgmResults'), err = $('#bgmErr');
   err.textContent = '찾는 중…'; list.replaceChildren();
   try {
-    const results = await itunesSearch(q, w => { err.textContent = `찾는 중… (${w})`; });
+    const results = await musicSearch(q, w => { err.textContent = `찾는 중… (${w})`; });
     err.textContent = results.length ? '' : '검색 결과가 없어요. 다른 이름으로 찾아보거나 직접 입력해 주세요.';
     results.forEach(t => {
       const li = el('li'), b = el('button'); b.type = 'button';
-      const art = (t.artworkUrl100 || '').replace('100x100bb', '300x300bb');
-      const i = img(t.artworkUrl100 || '', '', ''); i.referrerPolicy = 'no-referrer';
+      const i = img(t.art || '', '', ''); i.referrerPolicy = 'no-referrer';
       const tx = el('span'); tx.style.minWidth = '0';
-      tx.append(el('span', 'rt2', t.trackName), el('span', 'rt2 hint', `${t.artistName} · ${t.collectionName || ''}`));
+      tx.append(el('span', 'rt2', t.title), el('span', 'rt2 hint', `${t.artist}${t.album ? ' · ' + t.album : ''}${t.preview ? ' · ▶ 30초' : ''}`));
       b.append(i, tx);
-      b.onclick = () => setBgm({ title: t.trackName, artist: t.artistName, art, url: t.trackViewUrl || '' });
-      li.append(b); list.append(li);
+      b.onclick = () => setBgm(t);
+      li.append(b);
+      if (t.preview) {
+        const pv = el('button', 'linkbtn', '▶ 들어보기'); pv.type = 'button';
+        pv.onclick = e => { e.stopPropagation(); playPreview(t, pv); };
+        li.append(pv);
+      }
+      list.append(li);
     });
   } catch (x) {
-    err.textContent = `애플뮤직 검색에 연결하지 못했어요 (${x.message}). 와이파이/데이터를 바꾸거나 광고 차단 앱을 끄고 다시 해보고, 그래도 안 되면 아래에서 직접 입력해 주세요.`;
+    err.textContent = `노래 검색에 연결하지 못했어요 (${x.message}). 와이파이/데이터를 바꾸거나 광고 차단 앱을 끄고 다시 해보고, 그래도 안 되면 아래에서 직접 입력해 주세요.`;
   }
 });
 $('#bgmManualForm').addEventListener('submit', e => {
   e.preventDefault();
   const title = $('#bmTitle').value.trim(); if (!title) { $('#bmTitle').focus(); return; }
-  setBgm({ title, artist: $('#bmArtist').value.trim(), art: $('#bmArt').value.trim(), url: $('#bmUrl').value.trim() });
+  setBgm({ title, artist: $('#bmArtist').value.trim(), art: $('#bmArt').value.trim(), url: $('#bmUrl').value.trim(), preview: $('#bmPrev').value.trim() });
 });
 
 /* ---------------- 댓글 ---------------- */
@@ -1537,7 +1599,7 @@ function answerCards(d, rec, editable) {
       card.append(f);
     } else if (!a) {
       card.append(el('p', 'locked', k === S.me ? '답하지 않았어요' : `${nm(k)}님은 아직 답하지 않았어요`));
-    } else if (k !== S.me && !ans[S.me]) {
+    } else if (k !== S.me && editable && !ans[S.me]) {
       card.append(el('p', 'locked', '🔒 내 답을 남기면 열려요'));
     } else {
       card.append(el('p', 'anstext', a.text));
@@ -1556,19 +1618,15 @@ function renderQuestion() {
   const past = $('#qPast');
   preserve(past, () => {
     past.replaceChildren();
-    const set = new Set(Object.keys(S.qna || {}).filter(x => x < d));
-    for (let i = 1; i <= PAST_DAYS; i++) set.add(dateStr(-i));
-    const dates = [...set].sort().reverse().slice(0, 60);
+    const dates = Object.keys(S.qna || {}).filter(x => x < d).sort().reverse();
     if (!dates.length) past.append(el('p', 'hint', '지난 질문과 답이 여기에 차곡차곡 쌓여요'));
-    past.append(el('p', 'hint', `놓친 날도 지금 답할 수 있어요 (최근 ${PAST_DAYS}일)`));
     dates.forEach(x => {
       const r = (S.qna || {})[x] || {}, det = el('details'), key = 'past-' + x;
       det.open = S.open.has(key);
       det.addEventListener('toggle', () => { det.open ? S.open.add(key) : S.open.delete(key); });
       const sum = el('summary'); const cn = Object.keys(r.comments || {}).length;
-      const pa = r.answers || {}, mark = pa[S.me] && pa[S.other] ? ' 💞' : pa[S.me] ? ' ⏳' : ' ✏️';
-      sum.append(el('span', 'sd', x.slice(5).replace('-', '.')), el('span', '', 'Q. ' + questionFor(x) + mark + (cn ? `  💬${cn}` : '')));
-      const inner = el('div', 'inner'); inner.append(answerCards(x, r, true), commentList(`qna/${x}/comments`, r.comments, 'pc-' + x, true));
+      sum.append(el('span', 'sd', x.slice(5).replace('-', '.')), el('span', '', 'Q. ' + questionFor(x) + (cn ? `  💬${cn}` : '')));
+      const inner = el('div', 'inner'); inner.append(answerCards(x, r, false), commentList(`qna/${x}/comments`, r.comments, 'pc-' + x, true));
       det.append(sum, inner); past.append(det);
     });
   });
@@ -1892,7 +1950,7 @@ const BALANCES = [
 ];
 function balanceFor(ds) { const [y, m, d] = ds.split('-').map(Number); return BALANCES[(Math.floor(Date.UTC(y, m - 1, d) / 86400000) + 5) % BALANCES.length]; }
 function balRec(d) { return (((S.games || {}).balance) || {})[d] || {}; }
-function balCard(d) {
+function balCard(d, editable) {
   const rec = balRec(d), mine = rec[S.me], other = rec[S.other], pair = balanceFor(d);
   const wrap = el('div', 'balbox'), row = el('div', 'balrow');
   pair.forEach((txt, i) => {
@@ -1900,17 +1958,18 @@ function balCard(d) {
     b.append(el('span', 'bk', i ? 'B' : 'A'), el('span', '', txt));
     if (mine && mine.p === i) b.classList.add('mine');
     if (mine && other && other.p === i) b.classList.add('other');
+    if (!editable) b.disabled = true;
     b.setAttribute('aria-pressed', mine && mine.p === i ? 'true' : 'false');
     b.onclick = () => {
-      if (mine && mine.p === i) return;
-      if (!mine) addLog({ k: 'bal', d: d === todayStr() ? null : d });
+      if (!editable || (mine && mine.p === i)) return;
+      if (!mine) addLog({ k: 'bal' });
       store.set(`games/balance/${d}/${S.me}`, { p: i, ts: store.now() });
     };
     row.append(b);
   });
   wrap.append(row);
   let msg;
-  if (!mine) msg = other ? `🔒 ${nm(S.other)}님은 이미 골랐어요. 내가 고르면 열려요` : '둘 다 아직 안 골랐어요';
+  if (!mine) msg = !editable ? '이날은 그냥 지나갔어요' : other ? `🔒 ${nm(S.other)}님은 이미 골랐어요. 내가 고르면 열려요` : '둘 다 아직 안 골랐어요';
   else if (!other) msg = `${nm(S.other)}님의 선택을 기다리는 중…`;
   else msg = mine.p === other.p ? `💞 통했다! 둘 다 "${pair[mine.p]}"` : `🙃 갈렸어요. ${nm(S.me)}는 "${pair[mine.p]}", ${nm(S.other)}님은 "${pair[other.p]}"`;
   wrap.append(el('p', 'hint', msg));
@@ -1926,25 +1985,27 @@ function renderBalance() {
   const d = todayStr(), box = $('#balToday');
   preserve(box, () => {
     const pair = balanceFor(d);
-    box.replaceChildren(el('p', 'qdate', d.replaceAll('-', '.')), el('p', 'qtext', `${pair[0]} vs ${pair[1]}`), balCard(d));
+    box.replaceChildren(el('p', 'qdate', d.replaceAll('-', '.')), el('p', 'qtext', `${pair[0]} vs ${pair[1]}`), balCard(d, true));
   });
   const sc = balScore();
   $('#balScore').textContent = sc.both ? `커플지수 ${Math.round(sc.same / sc.both * 100)}% (${sc.both}번 중 ${sc.same}번 통했어요)` : '아직 기록이 없어요';
   const past = $('#balPast');
   preserve(past, () => {
     past.replaceChildren();
-    for (let i = 1; i <= 7; i++) {
-      const x = dateStr(-i), rec = balRec(x), pair = balanceFor(x);
+    const days = Object.keys(((S.games || {}).balance) || {}).filter(x => x < d).sort().reverse().slice(0, 14);
+    if (!days.length) past.append(el('p', 'hint', '지난 밸런스 결과가 여기에 쌓여요'));
+    days.forEach(x => {
+      const rec = balRec(x), pair = balanceFor(x);
       const mine = rec[S.me], other = rec[S.other];
       const det = el('details'), key = 'bal-' + x;
       det.open = S.open.has(key);
       det.addEventListener('toggle', () => { det.open ? S.open.add(key) : S.open.delete(key); });
-      const mark = mine && other ? (mine.p === other.p ? ' 💞' : ' 🙃') : mine ? ' ⏳' : ' ✏️';
+      const mark = mine && other ? (mine.p === other.p ? ' 💞' : ' 🙃') : '';
       const sum = el('summary');
       sum.append(el('span', 'sd', x.slice(5).replace('-', '.')), el('span', '', `${pair[0]} vs ${pair[1]}${mark}`));
-      const inner = el('div', 'inner'); inner.append(balCard(x));
+      const inner = el('div', 'inner'); inner.append(balCard(x, false));
       det.append(sum, inner); past.append(det);
-    }
+    });
   });
 }
 
