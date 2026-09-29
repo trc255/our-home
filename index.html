@@ -107,7 +107,7 @@ h1,h2,p{margin:0}
 .char .bubble{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);margin-bottom:6px;background:#fff;border:2px solid var(--pixel);padding:2px 6px;white-space:nowrap;font-size:11px;line-height:1.5;box-shadow:2px 2px 0 rgba(58,42,42,.25)}
 .char .bubble::after{content:"";position:absolute;left:50%;top:100%;width:6px;height:6px;margin-left:-3px;background:#fff;border-right:2px solid var(--pixel);border-bottom:2px solid var(--pixel);transform:translateY(-3px) rotate(45deg)}
 .char .handmark{position:absolute;right:-14px;top:50%;font-size:14px}
-.handheart{z-index:881;left:50%;top:66%;width:calc(var(--px) * 7);animation:bob .8s steps(1) infinite}
+.handheart{z-index:881;left:50%;top:60%;width:calc(var(--px) * 7);animation:bob .8s steps(1) infinite}
 @keyframes bob{50%{transform:translateY(calc(var(--px) * -1))}}
 .char.act-dance img{animation:dance 1s steps(1) infinite}
 @keyframes dance{0%{transform:none}25%{transform:translateY(calc(var(--px) * -2))}50%{transform:scaleX(-1)}75%{transform:scaleX(-1) translateY(calc(var(--px) * -2))}}
@@ -125,6 +125,8 @@ h1,h2,p{margin:0}
 @keyframes hug{50%{transform:translateX(calc(var(--px) * 2 * var(--dir)))}}
 .char.mo-kiss img{animation:lean 3s steps(1) infinite}
 .char.mo-pincher{z-index:882}
+.char.holding img{animation:holdbob 1.6s steps(1) infinite}
+@keyframes holdbob{0%{transform:scaleX(var(--flip))}50%{transform:scaleX(var(--flip)) translateY(calc(var(--px) * -1))}}
 .char.mo-pincher img{animation:pinchA .6s steps(1) infinite}
 .char.mo-pinched img{animation:pinchB .6s steps(1) infinite}
 @keyframes pinchA{0%{transform:scaleX(var(--flip))}50%{transform:scaleX(var(--flip)) translateX(calc(var(--px) * -1))}}
@@ -244,6 +246,30 @@ details.cdet>summary::-webkit-details-marker{display:none}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 dialog{border:3px solid var(--pixel);box-shadow:5px 5px 0 var(--pixel);padding:18px;width:min(380px,94vw);font-family:inherit;font-size:12px;max-height:90vh}
 dialog.wide{width:min(600px,94vw)}
+.balrow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.balopt{display:flex;align-items:center;gap:6px;text-align:left;border:2px solid var(--pixel);background:#fff;padding:8px;font-family:inherit;font-size:12px;cursor:pointer;line-height:1.5}
+.balopt .bk{background:var(--tab);color:#fff;padding:1px 5px}
+.balopt.mine{background:#fff0f4;box-shadow:3px 3px 0 var(--pixel)}
+.balopt.other{border-style:double;border-width:4px}
+.balopt.mine.other{background:#ffe3ec}
+.pethead{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.petface{width:44px;image-rendering:pixelated}
+.bar{display:flex;align-items:center;gap:6px;margin:3px 0}
+.bar b{font-weight:normal;min-width:66px}
+.bar .track{flex:1;height:10px;border:2px solid var(--pixel);background:#fff;display:block}
+.bar .track span{display:block;height:100%;background:#ff9fb6}
+.bar .track span.low{background:#9aa3ad}
+.bar i{font-style:normal;min-width:26px;text-align:right}
+.gcard{border:2px solid var(--pixel);background:#fff;padding:10px;margin-bottom:8px}
+.gcard .gname{font-size:14px;color:var(--tab);margin-bottom:2px}
+.gcard .gscore{display:flex;gap:12px;margin:6px 0}
+.gwrap{position:relative}
+#gameCv{width:100%;image-rendering:pixelated;border:2px solid var(--pixel);background:#cdeaff;touch-action:none;display:block}
+.gover{position:absolute;inset:0;background:rgba(255,255,255,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+.gres{font-size:14px;color:var(--tab)}
+.pet{transition:left 3s linear;z-index:870}
+.pet img{animation:bob 1s steps(1) infinite}
+.pet.sad img{filter:saturate(.35) brightness(.95);animation:none}
 dialog::backdrop{background:rgba(47,106,150,.45)}
 dialog h2{font-size:16px;font-weight:normal;color:var(--tab);margin-bottom:10px}
 dialog form{display:grid;gap:6px}
@@ -285,7 +311,9 @@ legend{color:var(--tab)}
   .avpreview{position:static}
 }
 @media (prefers-reduced-motion:reduce){
-  .char.mo-pincher img,.char.mo-pinched img{animation:none;transform:scaleX(var(--flip))}
+  .char.mo-pincher img,.char.mo-pinched img,.char.holding img{animation:none;transform:scaleX(var(--flip))}
+  .pet{transition:none}
+  .pet img{animation:none}
   .char img,.char.act-dance img,.char.act-hula img,.char .bubble.howl,.char.st-howl img,.char.act-guitar img,.char.act-sing img,.char.mo-hug img,.char.mo-kiss img,.patHand,.fx::before,.fx::after,.handheart,.char img.hit,.char img.shake,.drop.float img,.drop.land img,.eq i{animation:none}
   .char{transition:none}
   .pop{animation-duration:.01s}
@@ -386,6 +414,24 @@ legend{color:var(--tab)}
           </div>
         </div>
 
+        <!-- 미니게임 -->
+        <div id="tab-game" role="tabpanel" hidden>
+          <div class="sectionhead"><h2>오늘의 밸런스 게임</h2><span class="hint" id="balScore"></span></div>
+          <div id="balToday"></div>
+          <div class="past">
+            <div class="sectionhead"><h2>지난 밸런스</h2></div>
+            <div id="balPast"></div>
+          </div>
+          <div class="past">
+            <div class="sectionhead"><h2>우리 펫</h2><span class="hint">밥과 놀이는 4시간에 한 번씩</span></div>
+            <div id="petBox"></div>
+          </div>
+          <div class="past">
+            <div class="sectionhead"><h2>아케이드</h2><span class="hint">최고 점수로 겨뤄요</span></div>
+            <div id="arcadeBox"></div>
+          </div>
+        </div>
+
         <!-- 개발자에게 -->
         <div id="tab-dev" role="tabpanel" hidden>
           <div class="sectionhead"><h2>개발자에게</h2><button class="linkbtn" type="button" id="copyReqs">요청 목록 복사</button></div>
@@ -415,6 +461,7 @@ legend{color:var(--tab)}
     <nav class="tabs" role="tablist">
       <button class="tab" role="tab" type="button" data-tab="home" aria-selected="true">홈</button>
       <button class="tab" role="tab" type="button" data-tab="question" aria-selected="false">오늘의<br>질문</button>
+      <button class="tab" role="tab" type="button" data-tab="game" aria-selected="false">미니<br>게임</button>
       <button class="tab" role="tab" type="button" data-tab="guest" aria-selected="false">방명록</button>
       <button class="tab" role="tab" type="button" data-tab="dev" aria-selected="false">개발자<br>에게</button>
     </nav>
@@ -478,6 +525,19 @@ legend{color:var(--tab)}
       <button class="pbtn primary">저장</button>
     </div>
   </form>
+</dialog>
+
+<dialog id="gameDlg" class="wide">
+  <h2 id="gameTitle">미니게임</h2>
+  <p class="hint" id="gameHud"></p>
+  <div class="gwrap">
+    <canvas id="gameCv" width="220" height="160"></canvas>
+    <div class="gover" id="gameOver" hidden>
+      <p class="gres" id="gameResult"></p>
+      <div class="row"><button type="button" class="pbtn primary" id="gameRetry">다시 하기</button></div>
+    </div>
+  </div>
+  <div class="row end"><button type="button" class="pbtn" id="gameClose">닫기</button></div>
 </dialog>
 
 <dialog id="bgmDlg" class="wide">
@@ -662,7 +722,7 @@ function drawChar(r, look, pose, leashed) {
   }
   roundFill(r, 2, 3, 16, 14, [3, 1], OL); roundFill(r, 3, 4, 14, 12, [2, 1], SKIN);
   r(4, 13, 2, 1, '#ffb0bf'); r(14, 13, 2, 1, '#ffb0bf');
-  const face = { sleep: 'sleepy', sing: 'sing', smile: 'smile', hula: 'smile', howl: 'howl', pinched: 'pinched', reach: 'wink' }[pose] || look.face;
+  const face = { sleep: 'sleepy', sing: 'sing', smile: 'smile', hula: 'smile', howl: 'howl', pinched: 'pinched', reach: 'wink', hold: 'smile' }[pose] || look.face;
   (FACE_DRAW[face] || FACE_DRAW.sparkle)(r);
   const sideC = ['long', 'bob', 'short'].includes(look.hair) ? Hs : OL;
   r(6, 1, 8, 1, OL); r(4, 2, 2, 1, OL); r(14, 2, 2, 1, OL); r(3, 3, 1, 1, OL); r(16, 3, 1, 1, OL); r(2, 4, 1, 6, sideC); r(17, 4, 1, 6, sideC);
@@ -685,6 +745,13 @@ function drawChar(r, look, pose, leashed) {
     // 오른쪽 볼이 살짝 뽈록 (끝은 동글)
     r(17, 11, 2, 1, OL); r(17, 15, 2, 1, OL); r(19, 12, 1, 1, OL); r(19, 14, 1, 1, OL); r(20, 13, 1, 1, OL);
     r(15, 12, 4, 3, SKIN); r(19, 13, 1, 1, SKIN); r(17, 13, 2, 1, '#ffb0bf'); r(18, 12, 1, 1, '#ffc9d3');
+  }
+  if (pose === 'hold') {
+    // 안쪽 팔을 뻗어 손잡기 (손끝이 상대 손과 맞닿음)
+    const pts = [[16, 18], [17, 19], [18, 19], [19, 19], [20, 19]];
+    pts.forEach(([x, y]) => r(x - 1, y - 1, 3, 4, OL));
+    pts.forEach(([x, y], i) => r(x, y, 1, 2, i < 2 ? look.outfitColor : SKIN));
+    r(19, 17, 4, 5, OL); r(20, 18, 2, 3, SKIN); r(20, 18, 1, 1, '#fff2e6');
   }
   if (pose === 'reach') {
     // 오른팔을 뻗어서 볼 꼬집기
@@ -721,7 +788,7 @@ function charSrc(look, pose = 'stand', leashed = false) {
   }
   return (spriteCache[key] = c.toDataURL());
 }
-const POSE_W = { sleep: 28, hula: 28, pinched: 28, reach: 28 };
+const POSE_W = { sleep: 28, hula: 28, pinched: 28, reach: 28, hold: 28 };
 const HAND_SRC = spriteGrid(['.kkkk..', 'kssssk.', 'ksssssk', 'ksssssk', '.kkkkk.'], { k: OL, s: SKIN });
 const ACTS = { sleep: ['😴', '잠자기', '잠들었어요', '자는 중', '일어났어요'], dance: ['💃', '춤추기', '춤추기 시작했어요', '춤추는 중', '춤을 멈췄어요'], hula: ['🌺', '훌라훌라', '훌라훌라 춤을 추기 시작했어요', '훌라훌라 추는 중', '훌라춤을 멈췄어요'], guitar: ['🎸', '기타 치기', '기타를 치기 시작했어요', '기타 치는 중', '기타를 내려놨어요'], sing: ['🎤', '노래 부르기', '노래를 부르기 시작했어요', '노래 부르는 중', '노래를 멈췄어요'] };
 const MOMENTS = {
@@ -790,6 +857,8 @@ const QUESTIONS = [
   '평생 한 가지 음식만 먹어야 한다면?', '연애하면서 달라진 나의 모습은?', '같이 공연 보러 간다면 누구 공연?', '우리만의 암호나 신호를 하나 만든다면?',
   '오늘 스스로 칭찬해 주고 싶은 일은?', '다음 데이트 코스를 짠다면?', '서로에게 편지 한 줄을 쓴다면?', '지금 이 순간 제일 보고 싶은 사람은? (정답 있음)'
 ];
+const PAST_DAYS = 14;
+function dateStr(offset) { const t = new Date(); t.setDate(t.getDate() + offset); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; }
 function questionFor(ds) { const [y, m, d] = ds.split('-').map(Number); return QUESTIONS[Math.floor(Date.UTC(y, m - 1, d) / 86400000) % QUESTIONS.length]; }
 
 /* ---------------- 저장소 ---------------- */
@@ -841,7 +910,7 @@ async function makeFirebaseStore(root) {
 /* ---------------- 상태 ---------------- */
 const S = {
   me: 'A', other: 'B', users: {}, items: {}, drops: {}, profile: {}, stats: {}, gb: {}, qna: {}, seen: new Set(),
-  px: 4, editing: false, selected: null, holding: false, palCat: '가구', editAnswer: false, open: new Set(),
+  px: 4, editing: false, selected: null, holding: false, palCat: '가구', editAnswer: null, open: new Set(), games: {}, pet: {},
   sound: localStorage.getItem('mh-sound') === '1', draft: null
 };
 let store = null, dragging = null, handHeart;
@@ -917,7 +986,8 @@ function leashedPairs() {
 function renderChars() {
   const A = S.users.A || {}, B = S.users.B || {}, m = effectiveMoment();
   const holding = !!(A.hand && B.hand && isOnline('A') && isOnline('B'));
-  const pos = { A: holding ? 41 : 30, B: holding ? 59 : 70 };
+  const hgap = 21 * S.px / Math.max(1, room.clientWidth) * 100; // 두 손이 맞닿는 간격
+  const pos = { A: holding ? 50 - hgap / 2 : 30, B: holding ? 50 + hgap / 2 : 70 };
   const leashed = leashedPairs();
   if (!holding && leashed.length) { pos.A = 36; pos.B = 64; }
   if (m) {
@@ -941,10 +1011,10 @@ function renderChars() {
     const act = online && !m && ACTS[u.act] ? u.act : null;
     const st = STATUSES.find(s => s[0] === u.status);
     const howl = online && !m && !act && !!u.name && u.status === 'howl' && !u.msg;
-    let pose = { sleep: 'sleep', guitar: 'guitar', sing: 'sing', dance: 'smile', hula: 'hula' }[act] || (howl ? 'howl' : 'stand');
+    let pose = { sleep: 'sleep', guitar: 'guitar', sing: 'sing', dance: 'smile', hula: 'hula' }[act] || (holding ? 'hold' : howl ? 'howl' : 'stand');
     if (m) pose = m.kind === 'pinch' ? (k === m.actor ? 'reach' : 'pinched') : (m.kind === 'pat' && k === m.actor) ? 'stand' : 'smile';
     // 꼬집기: 서로 마주 보도록 좌우 반전 (A가 꼬집으면 A는 오른쪽을 봄)
-    c.style.setProperty('--flip', m && m.kind === 'pinch' && ((k === m.actor) !== (m.actor === 'A')) ? -1 : 1);
+    c.style.setProperty('--flip', (m && m.kind === 'pinch' && ((k === m.actor) !== (m.actor === 'A'))) || (pose === 'hold' && k === 'B') ? -1 : 1);
     S.poses[k] = pose;
     const isLeashed = leashed.some(([w]) => w === k) && pose !== 'sleep';
     const i = c.querySelector('img'), src = charSrc(lookOf(k), pose, isLeashed);
@@ -953,6 +1023,7 @@ function renderChars() {
     Object.keys(ACTS).forEach(a => c.classList.toggle('act-' + a, act === a));
     c.classList.toggle('mo-hug', !!m && m.kind === 'hug');
     c.classList.toggle('mo-kiss', !!m && m.kind === 'kiss');
+    c.classList.toggle('holding', pose === 'hold');
     c.classList.toggle('mo-pincher', !!m && m.kind === 'pinch' && k === m.actor);
     c.classList.toggle('mo-pinched', !!m && m.kind === 'pinch' && k !== m.actor);
     const fx = c.querySelector('.fx');
@@ -1089,14 +1160,17 @@ function logParts(e) {
     case 'look': return [A, '님이 새 모습으로 변신했어요!'];
     case 'bgm': return [A, `님이 BGM을 "${e.title}"(으)로 바꿨어요`];
     case 'gb': return [A, '님이 방명록에 글을 남겼어요'];
-    case 'answer': return [A, '님이 오늘의 질문에 답했어요'];
+    case 'answer': return [A, e.d ? `님이 ${e.d.slice(5).replace('-', '.')} 질문에 답했어요` : '님이 오늘의 질문에 답했어요'];
     case 'req': return [A, '님이 개발자에게 요청을 남겼어요'];
+    case 'bal': return [A, e.d ? `님이 ${e.d.slice(5).replace('-', '.')} 밸런스 게임에 답했어요` : '님이 오늘의 밸런스 게임을 골랐어요'];
+    case 'pet': return [A, `님이 ${(S.pet || {}).name || PET_DEFAULT}에게 ${e.a === 'feed' ? '밥을 줬어요' : '놀아줬어요'}`];
+    case 'score': return ARCADE[e.g] && [A, `님이 ${ARCADE[e.g].name} 신기록 ${e.s}${ARCADE[e.g].unit}을 세웠어요!`];
   }
   return null;
 }
 function logIcon(e) {
   if (e.k === 'throw' && THROWS[e.t]) return img(THROWS[e.t].src);
-  const map = { poke: '👉', hold: '🤝', unhold: '🤝', collar: '🐶', uncollar: '🐶', look: '🎀', bgm: '♪', gb: '✉️', answer: '✏️', req: '🛠️' };
+  const map = { poke: '👉', hold: '🤝', unhold: '🤝', collar: '🐶', uncollar: '🐶', look: '🎀', bgm: '♪', gb: '✉️', answer: '✏️', req: '🛠️', bal: '⚖️', pet: '🐶', score: '🏆' };
   if (e.k === 'moment' || e.k === 'mEnd') return (MOMENTS[e.m] || {}).emo || '';
   if (e.k === 'act' || e.k === 'actEnd') return (ACTS[e.a] || [''])[0];
   return map[e.k] || '•';
@@ -1354,17 +1428,41 @@ function setBgm(data) {
   addLog({ k: 'bgm', title: data.title.slice(0, 60) });
   $('#bgmDlg').close(); toast(`BGM을 "${data.title}"(으)로 바꿨어요`);
 }
-function itunesSearch(term) {
+function itunesUrl(term) {
+  return `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&country=KR&lang=ko_kr&limit=12`;
+}
+function itunesJsonp(term) {
   return new Promise((res, rej) => {
     const cb = 'itcb_' + uid().replace(/\W/g, '');
     const s = document.createElement('script');
     const done = () => { clearTimeout(timer); delete window[cb]; s.remove(); };
-    const timer = setTimeout(() => { done(); rej(new Error('timeout')); }, 8000);
+    const timer = setTimeout(() => { done(); rej(new Error('timeout')); }, 10000);
     window[cb] = d => { done(); res((d && d.results) || []); };
     s.onerror = () => { done(); rej(new Error('blocked')); };
-    s.src = `https://itunes.apple.com/search?term=${encodeURIComponent(term)}&media=music&entity=song&country=KR&limit=10&callback=${cb}`;
+    s.src = itunesUrl(term) + '&callback=' + cb;
     document.head.appendChild(s);
   });
+}
+async function itunesFetch(term, proxy) {
+  const raw = itunesUrl(term);
+  const url = proxy ? 'https://api.allorigins.win/raw?url=' + encodeURIComponent(raw) : raw;
+  const ctl = new AbortController(), timer = setTimeout(() => ctl.abort(), 10000);
+  try {
+    const r = await fetch(url, { signal: ctl.signal });
+    if (!r.ok) throw new Error('http ' + r.status);
+    const d = await r.json();
+    return d.results || [];
+  } finally { clearTimeout(timer); }
+}
+// 네트워크/차단 환경이 제각각이라 세 가지 방법을 차례로 시도해요
+async function itunesSearch(term, onTry) {
+  const ways = [['직접 연결', () => itunesFetch(term, false)], ['JSONP', () => itunesJsonp(term)], ['우회 연결', () => itunesFetch(term, true)]];
+  let last = null;
+  for (const [label, fn] of ways) {
+    try { if (onTry) onTry(label); const out = await fn(); if (out) return out; }
+    catch (e) { last = label + ': ' + (e && e.message || e); }
+  }
+  throw new Error(last || 'unknown');
 }
 $('#bgmEdit').onclick = () => { $('#bgmErr').textContent = ''; $('#bgmDlg').showModal(); $('#bgmQuery').focus(); };
 $('#bgmClose').onclick = () => $('#bgmDlg').close();
@@ -1375,7 +1473,7 @@ $('#bgmSearchForm').addEventListener('submit', async e => {
   const list = $('#bgmResults'), err = $('#bgmErr');
   err.textContent = '찾는 중…'; list.replaceChildren();
   try {
-    const results = await itunesSearch(q);
+    const results = await itunesSearch(q, w => { err.textContent = `찾는 중… (${w})`; });
     err.textContent = results.length ? '' : '검색 결과가 없어요. 다른 이름으로 찾아보거나 직접 입력해 주세요.';
     results.forEach(t => {
       const li = el('li'), b = el('button'); b.type = 'button';
@@ -1388,7 +1486,7 @@ $('#bgmSearchForm').addEventListener('submit', async e => {
       li.append(b); list.append(li);
     });
   } catch (x) {
-    err.textContent = '애플뮤직 검색에 연결하지 못했어요. 회사 네트워크에서 막혔을 수 있으니 아래에서 직접 입력해 주세요.';
+    err.textContent = `애플뮤직 검색에 연결하지 못했어요 (${x.message}). 와이파이/데이터를 바꾸거나 광고 차단 앱을 끄고 다시 해보고, 그래도 안 되면 아래에서 직접 입력해 주세요.`;
   }
 });
 $('#bgmManualForm').addEventListener('submit', e => {
@@ -1420,30 +1518,30 @@ function commentList(basePath, comments, key, inline) {
 }
 
 /* ---------------- 오늘의 질문 ---------------- */
-function answerCards(d, rec, today) {
+function answerCards(d, rec, editable) {
   const ans = rec.answers || {}, grid = el('div', 'answers');
   [S.me, S.other].forEach(k => {
     const a = ans[k], card = el('div', 'ans'), head = el('div', 'anshead');
     head.append(img(charSrc(lookOf(k)), 'ansface'), el('span', 'name', nm(k) + (k === S.me ? ' (나)' : '')));
     if (a) head.append(el('span', 'hint', fmtTime(a.ts).slice(5)));
     card.append(head);
-    if (k === S.me && today && (!a || S.editAnswer)) {
+    if (k === S.me && editable && (!a || S.editAnswer === d)) {
       const f = el('form', 'ansform'), t = el('textarea');
       t.maxLength = 300; t.rows = 3; t.dataset.k = 'ans-' + d; t.placeholder = '나의 답을 적어 보세요'; t.setAttribute('aria-label', '나의 답');
       if (a) t.value = a.text;
       const row = el('div', 'row');
-      if (a) { const cx = el('button', 'pbtn', '취소'); cx.type = 'button'; cx.onclick = () => { S.editAnswer = false; renderQuestion(); }; row.append(cx); }
+      if (a) { const cx = el('button', 'pbtn', '취소'); cx.type = 'button'; cx.onclick = () => { S.editAnswer = null; renderQuestion(); }; row.append(cx); }
       row.append(el('button', 'pbtn primary', a ? '수정 완료' : '답하기'));
       f.append(t, row);
-      f.onsubmit = e => { e.preventDefault(); const v = t.value.trim(); if (!v) return; S.editAnswer = false; t.value = ''; if (!a) addLog({ k: 'answer' }); store.set(`qna/${d}/answers/${S.me}`, { text: v.slice(0, 300), ts: store.now() }); };
+      f.onsubmit = e => { e.preventDefault(); const v = t.value.trim(); if (!v) return; S.editAnswer = null; t.value = ''; if (!a) addLog({ k: 'answer', d: d === todayStr() ? null : d }); store.set(`qna/${d}/answers/${S.me}`, { text: v.slice(0, 300), ts: store.now() }); };
       card.append(f);
     } else if (!a) {
       card.append(el('p', 'locked', k === S.me ? '답하지 않았어요' : `${nm(k)}님은 아직 답하지 않았어요`));
-    } else if (k !== S.me && today && !ans[S.me]) {
+    } else if (k !== S.me && !ans[S.me]) {
       card.append(el('p', 'locked', '🔒 내 답을 남기면 열려요'));
     } else {
       card.append(el('p', 'anstext', a.text));
-      if (k === S.me && today) { const eb = el('button', 'linkbtn', '수정'); eb.type = 'button'; eb.style.alignSelf = 'flex-start'; eb.onclick = () => { S.editAnswer = true; renderQuestion(); }; card.append(eb); }
+      if (k === S.me && editable) { const eb = el('button', 'linkbtn', '수정'); eb.type = 'button'; eb.style.alignSelf = 'flex-start'; eb.onclick = () => { S.editAnswer = d; renderQuestion(); }; card.append(eb); }
     }
     grid.append(card);
   });
@@ -1458,15 +1556,19 @@ function renderQuestion() {
   const past = $('#qPast');
   preserve(past, () => {
     past.replaceChildren();
-    const dates = Object.keys(S.qna || {}).filter(x => x < d).sort().reverse();
+    const set = new Set(Object.keys(S.qna || {}).filter(x => x < d));
+    for (let i = 1; i <= PAST_DAYS; i++) set.add(dateStr(-i));
+    const dates = [...set].sort().reverse().slice(0, 60);
     if (!dates.length) past.append(el('p', 'hint', '지난 질문과 답이 여기에 차곡차곡 쌓여요'));
+    past.append(el('p', 'hint', `놓친 날도 지금 답할 수 있어요 (최근 ${PAST_DAYS}일)`));
     dates.forEach(x => {
-      const r = S.qna[x], det = el('details'), key = 'past-' + x;
+      const r = (S.qna || {})[x] || {}, det = el('details'), key = 'past-' + x;
       det.open = S.open.has(key);
       det.addEventListener('toggle', () => { det.open ? S.open.add(key) : S.open.delete(key); });
       const sum = el('summary'); const cn = Object.keys(r.comments || {}).length;
-      sum.append(el('span', 'sd', x.slice(5).replace('-', '.')), el('span', '', 'Q. ' + questionFor(x) + (cn ? `  💬${cn}` : '')));
-      const inner = el('div', 'inner'); inner.append(answerCards(x, r, false), commentList(`qna/${x}/comments`, r.comments, 'pc-' + x, true));
+      const pa = r.answers || {}, mark = pa[S.me] && pa[S.other] ? ' 💞' : pa[S.me] ? ' ⏳' : ' ✏️';
+      sum.append(el('span', 'sd', x.slice(5).replace('-', '.')), el('span', '', 'Q. ' + questionFor(x) + mark + (cn ? `  💬${cn}` : '')));
+      const inner = el('div', 'inner'); inner.append(answerCards(x, r, true), commentList(`qna/${x}/comments`, r.comments, 'pc-' + x, true));
       det.append(sum, inner); past.append(det);
     });
   });
@@ -1536,7 +1638,7 @@ $('#avatarForm').addEventListener('submit', e => {
 /* ---------------- 조작 UI ---------------- */
 function showTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', t.dataset.tab === tab ? 'true' : 'false'));
-  ['home', 'question', 'guest', 'dev'].forEach(t => { $('#tab-' + t).hidden = t !== tab; });
+  ['home', 'question', 'game', 'guest', 'dev'].forEach(t => { $('#tab-' + t).hidden = t !== tab; });
 }
 function renderPalette() {
   const cats = $('#palcats'); cats.replaceChildren();
@@ -1660,7 +1762,7 @@ async function start(id) {
   setInterval(heartbeat, 25000);
   setInterval(() => { renderChars(); renderProfile(); }, 15000);
   let lastDay = todayStr();
-  setInterval(() => { if (todayStr() !== lastDay) { lastDay = todayStr(); S.editAnswer = false; renderQuestion(); toast('새로운 오늘의 질문이 도착했어요'); } }, 60000);
+  setInterval(() => { if (todayStr() !== lastDay) { lastDay = todayStr(); S.editAnswer = null; renderQuestion(); toast('새로운 오늘의 질문이 도착했어요'); } }, 60000);
   addEventListener('pagehide', () => store.update('users/' + S.me, { online: false }));
 
   let usersLoaded = false;
@@ -1738,6 +1840,31 @@ async function start(id) {
     qC = now; qLoaded = true; renderQuestion();
   });
 
+  let gamesLoaded = false;
+  store.on('games', v => {
+    const prev = S.games || {}; S.games = v || {};
+    if (gamesLoaded) {
+      const d = todayStr();
+      const o = (((S.games.balance || {})[d]) || {})[S.other], po = ((((prev.balance || {})[d]) || {}))[S.other];
+      if (o && (!po || po.ts !== o.ts)) notify(`${nm(S.other)}님이 오늘의 밸런스를 골랐어요 ⚖️`, 'throw');
+      for (const g in ARCADE) {
+        const n = (((S.games.scores || {})[g] || {})[S.other] || {}).best, pb = (((prev.scores || {})[g] || {})[S.other] || {}).best;
+        if (n && n !== pb) notify(`${nm(S.other)}님이 ${ARCADE[g].name} 기록 ${n}${ARCADE[g].unit}을 세웠어요 🏆`, 'throw');
+      }
+    }
+    gamesLoaded = true; renderGame();
+  });
+  let petLoaded = false;
+  store.on('pet', v => {
+    const prev = S.pet || {}; S.pet = v || {};
+    if (petLoaded && S.pet.by === S.other) {
+      if (S.pet.fed !== prev.fed) notify(`${nm(S.other)}님이 ${S.pet.name || PET_DEFAULT}에게 밥을 줬어요 🍚`, 'throw');
+      else if (S.pet.play !== prev.play) notify(`${nm(S.other)}님이 ${S.pet.name || PET_DEFAULT}와 놀아줬어요 🧶`, 'throw');
+    }
+    petLoaded = true; renderPet();
+  });
+  setInterval(renderPet, 300000);
+
   let evFirst = true;
   store.on('events/' + S.me, ev => {
     if (evFirst) { evFirst = false; if (ev) S.seen.add(ev.id); return; }
@@ -1746,8 +1873,287 @@ async function start(id) {
     if (ev.type === 'poke') { hitChar(S.me, 'poke'); notify(`${nm(ev.from)}님이 콕 찔렀어요 👉`, 'poke'); }
     else if (THROWS[ev.type]) { animateThrow(ev.from, ev.x ?? 60, ev.y ?? 92, ev.type, () => hitChar(S.me, ev.type)); notify(`${nm(ev.from)}님이 ${THROWS[ev.type].verb}`, 'throw'); }
   });
-  renderQuestion(); renderGuestbook();
+  renderQuestion(); renderGuestbook(); renderGame();
 }
+
+/* ---------------- 미니게임: 밸런스 게임 / 펫 / 아케이드 ---------------- */
+const BALANCES = [
+  ['평생 여름만', '평생 겨울만'], ['부먹', '찍먹'], ['아침형 인간', '저녁형 인간'], ['바다 여행', '산 여행'],
+  ['민트초코 좋아', '민트초코 싫어'], ['매일 라면', '매일 샐러드'], ['돈 많은 백수', '적당한 월급의 열정 직장'], ['과거로 가기', '미래로 가기'],
+  ['강아지', '고양이'], ['영화관 최신작', '집에서 넷플릭스'], ['해외여행 1년 1번 길게', '국내여행 자주'], ['말이 잘 통하는 사람', '잘 웃겨주는 사람'],
+  ['연락 자주', '만날 때 진하게'], ['계획 다 세우고 가기', '즉흥으로 가기'], ['평생 치킨만', '평생 피자만'], ['노래방', '보드게임 카페'],
+  ['사진 많이 찍기', '눈에 담기'], ['에어컨 20도', '선풍기 자연바람'], ['아이돌 콘서트', '페스티벌'], ['롤러코스터', '귀신의 집'],
+  ['같이 요리하기', '맛집 찾아가기'], ['매운 거', '단 거'], ['아침 늦잠', '아침 산책'], ['말 못 하는 하루', '못 듣는 하루'],
+  ['모든 걸 기억하기', '슬픈 건 다 잊기'], ['키 10cm 크기', '몸무게 마음대로'], ['평생 봄가을 날씨', '평생 눈 오는 날'], ['커피', '디저트'],
+  ['친구 많은 사람', '친구 적고 깊은 사람'], ['재택 근무', '사무실 출근'], ['로또 1등 대신 연애 끝', '지금 이대로'], ['먼저 연락하기', '기다리기'],
+  ['드라마 정주행', '예능 정주행'], ['놀이공원', '전시회'], ['새벽 드라이브', '한낮 피크닉'], ['첫눈에 반하기', '천천히 스며들기'],
+  ['평생 반팔', '평생 긴팔'], ['서프라이즈 받기', '같이 계획하기'], ['같이 운동', '같이 누워 있기'], ['둘만의 여행', '친구들과 우르르'],
+  ['손편지', '긴 카톡'], ['고백은 밤에', '고백은 낮에'], ['집순이/집돌이', '밖순이/밖돌이'], ['같이 게임하기', '같이 산책하기']
+];
+function balanceFor(ds) { const [y, m, d] = ds.split('-').map(Number); return BALANCES[(Math.floor(Date.UTC(y, m - 1, d) / 86400000) + 5) % BALANCES.length]; }
+function balRec(d) { return (((S.games || {}).balance) || {})[d] || {}; }
+function balCard(d) {
+  const rec = balRec(d), mine = rec[S.me], other = rec[S.other], pair = balanceFor(d);
+  const wrap = el('div', 'balbox'), row = el('div', 'balrow');
+  pair.forEach((txt, i) => {
+    const b = el('button', 'balopt'); b.type = 'button';
+    b.append(el('span', 'bk', i ? 'B' : 'A'), el('span', '', txt));
+    if (mine && mine.p === i) b.classList.add('mine');
+    if (mine && other && other.p === i) b.classList.add('other');
+    b.setAttribute('aria-pressed', mine && mine.p === i ? 'true' : 'false');
+    b.onclick = () => {
+      if (mine && mine.p === i) return;
+      if (!mine) addLog({ k: 'bal', d: d === todayStr() ? null : d });
+      store.set(`games/balance/${d}/${S.me}`, { p: i, ts: store.now() });
+    };
+    row.append(b);
+  });
+  wrap.append(row);
+  let msg;
+  if (!mine) msg = other ? `🔒 ${nm(S.other)}님은 이미 골랐어요. 내가 고르면 열려요` : '둘 다 아직 안 골랐어요';
+  else if (!other) msg = `${nm(S.other)}님의 선택을 기다리는 중…`;
+  else msg = mine.p === other.p ? `💞 통했다! 둘 다 "${pair[mine.p]}"` : `🙃 갈렸어요. ${nm(S.me)}는 "${pair[mine.p]}", ${nm(S.other)}님은 "${pair[other.p]}"`;
+  wrap.append(el('p', 'hint', msg));
+  return wrap;
+}
+function balScore() {
+  const all = ((S.games || {}).balance) || {};
+  let both = 0, same = 0;
+  for (const d in all) { const r = all[d]; if (r[S.me] && r[S.other]) { both++; if (r[S.me].p === r[S.other].p) same++; } }
+  return { both, same };
+}
+function renderBalance() {
+  const d = todayStr(), box = $('#balToday');
+  preserve(box, () => {
+    const pair = balanceFor(d);
+    box.replaceChildren(el('p', 'qdate', d.replaceAll('-', '.')), el('p', 'qtext', `${pair[0]} vs ${pair[1]}`), balCard(d));
+  });
+  const sc = balScore();
+  $('#balScore').textContent = sc.both ? `커플지수 ${Math.round(sc.same / sc.both * 100)}% (${sc.both}번 중 ${sc.same}번 통했어요)` : '아직 기록이 없어요';
+  const past = $('#balPast');
+  preserve(past, () => {
+    past.replaceChildren();
+    for (let i = 1; i <= 7; i++) {
+      const x = dateStr(-i), rec = balRec(x), pair = balanceFor(x);
+      const mine = rec[S.me], other = rec[S.other];
+      const det = el('details'), key = 'bal-' + x;
+      det.open = S.open.has(key);
+      det.addEventListener('toggle', () => { det.open ? S.open.add(key) : S.open.delete(key); });
+      const mark = mine && other ? (mine.p === other.p ? ' 💞' : ' 🙃') : mine ? ' ⏳' : ' ✏️';
+      const sum = el('summary');
+      sum.append(el('span', 'sd', x.slice(5).replace('-', '.')), el('span', '', `${pair[0]} vs ${pair[1]}${mark}`));
+      const inner = el('div', 'inner'); inner.append(balCard(x));
+      det.append(sum, inner); past.append(det);
+    }
+  });
+}
+
+/* ----- 펫 ----- */
+const PET_SRC = spriteGrid([
+  '.kk......kk.', 'kBBk....kBBk', 'kBBBkkkkBBBk', '.kBBBBBBBBk.',
+  '.kBeBBBBeBk.', '.kBBWWWWBBk.', '.kBBWnnWBBk.', '..kBWWWWBk..',
+  '..kkBBBBkk..', '...kBBBBk...', '..kBBkkBBk..', '..kkk..kkk..'
+], { k: K, B: '#ffdeb0', W: '#fffcf5', n: K, e: K });
+const PET_COOL = 4 * 3600e3, PET_DEFAULT = '두부';
+function petState() {
+  const p = S.pet || {}, now = store ? store.now() : Date.now();
+  const drop = t => Math.max(0, Math.min(100, Math.round(100 - (now - (t || now)) / 3600e3 * 8)));
+  const hunger = drop(p.fed), fun = drop(p.play), exp = p.exp || 0;
+  return { born: p.born, name: p.name || PET_DEFAULT, hunger, fun, exp, lv: Math.floor(exp / 8) + 1, mood: (hunger + fun) / 2, fed: p.fed || 0, play: p.play || 0 };
+}
+function petAct(kind) {
+  const p = S.pet || {}, key = kind === 'feed' ? 'fed' : 'play', left = PET_COOL - (store.now() - (p[key] || 0));
+  if (p.born && left > 0) { toast(`${Math.ceil(left / 60000)}분 뒤에 또 해줄 수 있어요`); return; }
+  const other = key === 'fed' ? 'play' : 'fed';
+  store.update('pet', { [key]: store.now(), [other]: p[other] || store.now(), exp: (p.exp || 0) + 1, by: S.me, born: p.born || store.now(), name: p.name || PET_DEFAULT });
+  addLog({ k: 'pet', a: kind });
+  blip('hand');
+}
+let petEl = null;
+function renderPetRoom() {
+  const st = petState();
+  if (!st.born) { if (petEl) { petEl.hidden = true; } return; }
+  if (!petEl) {
+    petEl = el('button', 'sprite pet'); petEl.type = 'button'; petEl.setAttribute('aria-label', '펫 상태 보기');
+    const i = img(PET_SRC); i.style.width = 'calc(var(--px) * 12)';
+    petEl.append(i); room.appendChild(petEl);
+    petEl.onclick = () => { const s = petState(); toast(`${s.name} · Lv.${s.lv} · 포만감 ${s.hunger} / 기분 ${s.fun}`); };
+    petEl.style.left = '50%'; petEl.style.top = '92%';
+    setInterval(() => {
+      if (!petEl || petEl.hidden) return;
+      const x = 12 + Math.random() * 76;
+      petEl.style.left = x + '%';
+    }, 6000);
+  }
+  petEl.hidden = false;
+  petEl.classList.toggle('sad', st.mood < 35);
+  petEl.style.zIndex = 870;
+}
+function renderPet() {
+  const st = petState(), box = $('#petBox');
+  preserve(box, () => {
+    box.replaceChildren();
+    if (!st.born) {
+      box.append(el('p', 'hint', '아직 펫이 없어요. 밥을 한 번 주면 우리 집에 눌러앉아요 🐶'));
+    } else {
+      const head = el('div', 'pethead');
+      const pi = img(PET_SRC, 'petface'); head.append(pi, el('span', 'name', `${st.name}  Lv.${st.lv}`));
+      const days = Math.max(1, Math.floor((store.now() - st.born) / 86400e3) + 1);
+      head.append(el('span', 'hint', `함께한 지 ${days}일`));
+      box.append(head);
+      [['🍚 포만감', st.hunger], ['🧶 기분', st.fun]].forEach(([label, v]) => {
+        const row = el('div', 'bar'); const fill = el('span'); fill.style.width = v + '%';
+        if (v < 30) fill.classList.add('low');
+        row.append(el('b', '', label), el('span', 'track', ''), el('i', '', v + ''));
+        row.querySelector('.track').append(fill);
+        box.append(row);
+      });
+      const mood = st.mood > 70 ? '기분 최고예요! 꼬리가 멈추질 않아요' : st.mood > 40 ? '그럭저럭 잘 지내는 중' : st.mood > 20 ? '심심해하는 눈치예요…' : '시무룩… 관심이 필요해요 ㅠ';
+      box.append(el('p', 'hint', mood));
+    }
+    const row = el('div', 'row');
+    const mk = (t, fn) => { const b = el('button', 'pbtn', t); b.type = 'button'; b.onclick = fn; return b; };
+    const left = k => Math.max(0, PET_COOL - (store.now() - (k === 'feed' ? st.fed : st.play)));
+    const fb = mk(left('feed') && st.born ? `🍚 밥 주기 (${Math.ceil(left('feed') / 60000)}분 뒤)` : '🍚 밥 주기', () => petAct('feed'));
+    const pb = mk(left('play') && st.born ? `🧶 놀아주기 (${Math.ceil(left('play') / 60000)}분 뒤)` : '🧶 놀아주기', () => petAct('play'));
+    row.append(fb, pb);
+    if (st.born) row.append(mk('✏️ 이름 바꾸기', () => {
+      const v = prompt('펫 이름', st.name); if (!v) return;
+      store.update('pet', { name: v.trim().slice(0, 12) || PET_DEFAULT });
+    }));
+    box.append(row);
+  });
+  renderPetRoom();
+}
+
+/* ----- 아케이드 ----- */
+const ARCADE = {
+  catch: { name: '선물 받기', emo: '🎁', unit: '점', desc: '좌우로 움직여서 선물은 받고 폭탄은 피해요 (45초)' },
+  run: { name: '점프 달리기', emo: '🏃', unit: 'm', desc: '탭하거나 스페이스로 점프해서 장애물을 넘어요' }
+};
+const BOMB_SRC = spriteGrid(['....y..', '...ky..', '..kkk..', '.kbbbk.', 'kbbWbbk', 'kbbbbbk', '.kkkkk.'], { k: K, b: '#4a4a55', W: '#9aa0aa', y: '#ffd93d' });
+const CATCH_ITEMS = [
+  { src: THROWS.heart.src, pt: 3 }, { src: THROWS.star.src, pt: 2 }, { src: THROWS.flower.src, pt: 2 },
+  { src: THROWS.coffee.src, pt: 1 }, { src: THROWS.letter.src, pt: 2 }, { src: BOMB_SRC, pt: -1 }
+];
+function bestOf(g, k) { const r = (((S.games || {}).scores || {})[g] || {})[k]; return (r && r.best) || 0; }
+function saveScore(g, score) {
+  if (score <= bestOf(g, S.me)) return false;
+  store.set(`games/scores/${g}/${S.me}`, { best: score, ts: store.now() });
+  addLog({ k: 'score', g, s: score });
+  return true;
+}
+function renderArcade() {
+  const box = $('#arcadeBox'); box.replaceChildren();
+  Object.entries(ARCADE).forEach(([g, def]) => {
+    const card = el('div', 'gcard');
+    card.append(el('p', 'gname', `${def.emo} ${def.name}`), el('p', 'hint', def.desc));
+    const sc = el('p', 'gscore');
+    sc.append(el('span', '', `${nm(S.me)} ${bestOf(g, S.me)}${def.unit}`), el('span', '', `${nm(S.other)} ${bestOf(g, S.other)}${def.unit}`));
+    const b = el('button', 'pbtn primary', '▶ 시작'); b.type = 'button'; b.onclick = () => startGame(g);
+    card.append(sc, b); box.append(card);
+  });
+}
+const gameImg = {};
+function preloadGameImgs() {
+  [...CATCH_ITEMS.map(x => x.src), PET_SRC].forEach(src => { if (!gameImg[src]) { const i = new Image(); i.src = src; gameImg[src] = i; } });
+  ['teddy', 'lamp', 'amp', 'beanbag', 'figure'].forEach(k => { const f = FURN[k]; if (f && !gameImg[f.src]) { const i = new Image(); i.src = f.src; gameImg[f.src] = i; } });
+}
+let gameLoop = null;
+function stopGame() { if (gameLoop) cancelAnimationFrame(gameLoop); gameLoop = null; }
+function startGame(kind) {
+  preloadGameImgs();
+  const dlg = $('#gameDlg'), cv = $('#gameCv'), g = cv.getContext('2d');
+  $('#gameTitle').textContent = `${ARCADE[kind].emo} ${ARCADE[kind].name}`;
+  $('#gameHud').textContent = '';
+  const over = $('#gameOver'); over.hidden = true;
+  if (!dlg.open) dlg.showModal();
+  const W = cv.width, H = cv.height;
+  const me = new Image(); me.src = charSrc(lookOf(S.me), 'stand');
+  let last = performance.now(), running = true, score = 0;
+  const finish = () => {
+    running = false; stopGame();
+    const val = kind === 'run' ? Math.floor(score) : score;
+    const rec = saveScore(kind, val);
+    over.hidden = false;
+    $('#gameResult').textContent = `${val}${ARCADE[kind].unit}${rec ? ' · 신기록이에요! 🏆' : ` (내 최고 ${bestOf(kind, S.me)}${ARCADE[kind].unit})`}`;
+    if (rec) blip('hand');
+  };
+
+  if (kind === 'catch') {
+    let px = W / 2, lives = 3, t = 45, items = [], spawn = 0;
+    const move = e => { const r = cv.getBoundingClientRect(); px = (e.clientX - r.left) / r.width * W; };
+    cv.onpointerdown = e => { cv.setPointerCapture(e.pointerId); move(e); };
+    cv.onpointermove = move;
+    const keys = {};
+    const kd = e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { keys[e.key] = e.type === 'keydown'; e.preventDefault(); } };
+    dlg.onkeydown = kd; dlg.onkeyup = kd;
+    const step = now => {
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      if (keys.ArrowLeft) px -= 120 * dt;
+      if (keys.ArrowRight) px += 120 * dt;
+      px = Math.max(12, Math.min(W - 12, px));
+      t -= dt; spawn -= dt;
+      if (t <= 0) return finish();
+      if (spawn <= 0) {
+        spawn = Math.max(0.35, 0.9 - (45 - t) / 90);
+        const def = CATCH_ITEMS[Math.floor(Math.random() * CATCH_ITEMS.length)];
+        items.push({ x: 10 + Math.random() * (W - 20), y: -8, v: 45 + Math.random() * 40 + (45 - t), def });
+      }
+      g.fillStyle = '#cdeaff'; g.fillRect(0, 0, W, H);
+      g.fillStyle = '#d8a468'; g.fillRect(0, H - 12, W, 12);
+      items.forEach(it => { it.y += it.v * dt; });
+      items = items.filter(it => {
+        const hit = it.y > H - 40 && it.y < H - 10 && Math.abs(it.x - px) < 13;
+        if (hit) {
+          if (it.def.pt < 0) { lives--; blip('poke'); if (lives <= 0) { finish(); return false; } }
+          else { score += it.def.pt; blip('pick'); }
+          return false;
+        }
+        return it.y < H + 10;
+      });
+      items.forEach(it => { const im = gameImg[it.def.src]; if (im && im.complete) g.drawImage(im, Math.round(it.x - 3.5), Math.round(it.y), 7, 7); });
+      if (me.complete) g.drawImage(me, Math.round(px - 10), H - 40, 20, 28);
+      $('#gameHud').textContent = `⏱ ${Math.ceil(t)}초   💗 ${'♥'.repeat(Math.max(0, lives))}   ${score}점`;
+      if (running) gameLoop = requestAnimationFrame(step);
+    };
+    stopGame(); last = performance.now(); gameLoop = requestAnimationFrame(step);
+  } else {
+    const ground = H - 14;
+    let y = 0, vy = 0, obs = [], spawn = 1, speed = 70, dist = 0, jumping = false;
+    const jump = () => { if (y === 0) { vy = -180; jumping = true; blip('pick'); } };
+    cv.onpointerdown = jump;
+    const kd = e => { if (e.key === ' ' || e.key === 'ArrowUp') { e.preventDefault(); if (e.type === 'keydown') jump(); } };
+    dlg.onkeydown = kd; dlg.onkeyup = null;
+    const kinds = ['teddy', 'lamp', 'amp', 'beanbag', 'figure'].map(k => FURN[k]).filter(Boolean);
+    const step = now => {
+      const dt = Math.min(0.05, (now - last) / 1000); last = now;
+      speed = 70 + dist / 12; dist += speed * dt / 10; score = dist;
+      vy += 520 * dt; y = Math.min(0, y + vy * dt);
+      if (y === 0) { vy = 0; jumping = false; }
+      spawn -= dt;
+      if (spawn <= 0) { spawn = Math.max(0.9, 2.0 - dist / 400) + Math.random() * 0.8; const d = kinds[Math.floor(Math.random() * kinds.length)]; obs.push({ x: W + 10, d }); }
+      obs.forEach(o => { o.x -= speed * dt; });
+      obs = obs.filter(o => o.x > -30);
+      g.fillStyle = '#ffe3ec'; g.fillRect(0, 0, W, H);
+      g.fillStyle = '#d8a468'; g.fillRect(0, ground, W, H - ground);
+      g.fillStyle = '#c08f55'; const off = (dist * 10) % 16; for (let i = 0; i < W + 16; i += 16) g.fillRect(i - off, ground + 4, 8, 2);
+      obs.forEach(o => { const im = gameImg[o.d.src]; if (im && im.complete) g.drawImage(im, Math.round(o.x), ground - o.d.h, o.d.w, o.d.h); });
+      const pxx = 26, pw = 20, ph = 28, pyy = ground - ph + y;
+      if (me.complete) g.drawImage(me, pxx, Math.round(pyy), pw, ph);
+      for (const o of obs) {
+        if (o.x < pxx + pw - 5 && o.x + o.d.w > pxx + 5 && pyy + ph > ground - o.d.h + 2) { blip('poke'); return finish(); }
+      }
+      $('#gameHud').textContent = `${Math.floor(dist)}m`;
+      if (running) gameLoop = requestAnimationFrame(step);
+    };
+    stopGame(); last = performance.now(); gameLoop = requestAnimationFrame(step);
+  }
+  $('#gameRetry').onclick = () => startGame(kind);
+}
+$('#gameClose').onclick = () => { stopGame(); $('#gameDlg').close(); };
+$('#gameDlg').addEventListener('close', () => { stopGame(); renderArcade(); });
+function renderGame() { renderBalance(); renderPet(); renderArcade(); }
 
 applySky(); setInterval(applySky, 60000);
 const savedId = loadIdentity();
